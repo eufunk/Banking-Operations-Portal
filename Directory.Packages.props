@@ -1,0 +1,26 @@
+<Project>
+
+  <!--
+    Central Package Management: Paketversionen werden ausschließlich hier gepflegt.
+    Einzelne .csproj-Dateien referenzieren Pakete ohne Version-Attribut.
+    Vorteil in einer Multi-Projekt-Solution: keine widersprüchlichen Versionen zwischen
+    Projekten, ein Blick genügt für ein Dependency-/Security-Audit.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Banking.Api -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
+    <!-- Explizit gepinnt: behebt GHSA-v5pm-xwqc-g5wc (High Severity) aus Microsoft.AspNetCore.OpenApi 10.0.7 -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+
+    <!-- Testprojekte -->
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+</Project>

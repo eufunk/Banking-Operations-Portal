@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    Zentrale Build-Einstellungen für alle Projekte der Solution.
+    Einzelne .csproj-Dateien überschreiben nur, was sie wirklich abweichend brauchen
+    (z. B. Sdk.Web statt Sdk, oder IsPackable=false bei Testprojekten).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Enterprise-Grundhaltung: Warnungen ernst nehmen, aber nicht den Build blockieren, solange wir noch aufbauen -->
+    <WarningsAsErrors></WarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <Authors>Eugenia Funk</Authors>
+    <Company>Banking Operations Portal (Portfolio-Projekt)</Company>
+  </PropertyGroup>
+
+</Project>
