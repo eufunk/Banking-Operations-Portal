@@ -1,4 +1,10 @@
+using Banking.Application.Accounts;
+using Banking.Application.Common;
+using Banking.Application.Customers;
+using Banking.Application.Payments;
+using Banking.Application.Transactions;
 using Banking.Infrastructure.Persistence;
+using Banking.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,6 +22,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddDbContext<BankingDbContext>(options =>
             options.UseSqlServer(connectionString, sql =>
                 sql.MigrationsAssembly(typeof(BankingDbContext).Assembly.FullName)));
+
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
+        services.AddScoped<ITransactionRepository, TransactionRepository>();
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }
