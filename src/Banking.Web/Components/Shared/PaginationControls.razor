@@ -1,0 +1,26 @@
+<div class="pagination-controls">
+    <button type="button" disabled="@(!CanGoPrevious)" @onclick="GoPrevious">‹ Zurück</button>
+    <span>Seite @Page von @(TotalPages == 0 ? 1 : TotalPages) (@TotalCount Einträge)</span>
+    <button type="button" disabled="@(!CanGoNext)" @onclick="GoNext">Weiter ›</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public int Page { get; set; }
+
+    [Parameter, EditorRequired]
+    public int TotalPages { get; set; }
+
+    [Parameter, EditorRequired]
+    public int TotalCount { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<int> PageChanged { get; set; }
+
+    private bool CanGoPrevious => Page > 1;
+    private bool CanGoNext => Page < TotalPages;
+
+    private Task GoPrevious() => PageChanged.InvokeAsync(Page - 1);
+
+    private Task GoNext() => PageChanged.InvokeAsync(Page + 1);
+}

@@ -1,0 +1,47 @@
+@page "/transactions/{Id:guid}"
+@rendermode InteractiveServer
+@inject ITransactionsApiClient TransactionsApi
+
+<PageTitle>Transaktionsdetails</PageTitle>
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_result is { IsSuccess: false })
+{
+    <ErrorAlert Title="Transaktion nicht gefunden" Message="@(_result.ErrorMessage!)" />
+}
+else if (_result is { IsSuccess: true, Value: not null } success)
+{
+    <h1>Transaktion</h1>
+
+    <dl class="detail-list">
+        <dt>Konto</dt>
+        <dd><a href="@($"/accounts/{success.Value.AccountId}")">@success.Value.AccountId</a></dd>
+        <dt>Betrag</dt>
+        <dd>@success.Value.Amount.ToString("N2") @success.Value.Currency</dd>
+        <dt>Buchungsdatum</dt>
+        <dd>@success.Value.BookingDate.ToLocalTime().ToString("g")</dd>
+        <dt>Typ</dt>
+        <dd>@success.Value.TransactionType</dd>
+        <dt>Status</dt>
+        <dd><StatusBadge Status="@success.Value.Status.ToString()" /></dd>
+        <dt>Beschreibung</dt>
+        <dd>@(success.Value.Description ?? "–")</dd>
+    </dl>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private ApiResult<TransactionDetailsDto>? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _result = await TransactionsApi.GetByIdAsync(Id, CancellationToken.None);
+        _loading = false;
+    }
+}

@@ -34,7 +34,7 @@ public sealed class TransactionsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResult<TransactionSummaryDto>>> Search(
-        [FromQuery] Guid accountId,
+        [FromQuery] Guid? accountId,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
         [FromQuery] TransactionStatus? status,
@@ -46,7 +46,9 @@ public sealed class TransactionsController : ControllerBase
             "Transaktionssuche: accountId={AccountId}, from={From}, to={To}, status={Status}, page={Page}, pageSize={PageSize}",
             accountId, from, to, status, page, pageSize);
 
-        var query = new SearchTransactionsQuery(new AccountId(accountId), from, to, status, page, pageSize);
+        var query = new SearchTransactionsQuery(
+            accountId.HasValue ? new AccountId(accountId.Value) : null, from, to, status, page, pageSize);
+
         var result = await _searchTransactions.Handle(query, cancellationToken);
 
         return result.ToActionResult();

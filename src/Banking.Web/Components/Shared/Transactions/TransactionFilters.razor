@@ -1,0 +1,78 @@
+<EditForm Model="this" OnValidSubmit="Submit" FormName="transaction-filters">
+    <div class="filter-bar">
+        <label>
+            Konto-ID
+            <input type="text" placeholder="(leer = alle Konten)" @bind="_accountIdText" />
+        </label>
+        <label>
+            Von
+            <input type="date" @bind="_from" />
+        </label>
+        <label>
+            Bis
+            <input type="date" @bind="_to" />
+        </label>
+        <label>
+            Status
+            <select @onchange="OnStatusChanged">
+                <option value="">Alle</option>
+                @foreach (var status in Enum.GetValues<TransactionStatus>())
+                {
+                    <option value="@status" selected="@(_status == status)">@status</option>
+                }
+            </select>
+        </label>
+        <button type="submit">Filtern</button>
+    </div>
+
+    @if (_accountIdError is not null)
+    {
+        <p class="field-error">@_accountIdError</p>
+    }
+</EditForm>
+
+@code {
+    private string? _accountIdText;
+    private DateTime? _from;
+    private DateTime? _to;
+    private TransactionStatus? _status;
+    private string? _accountIdError;
+
+    [Parameter]
+    public Guid? AccountId { get; set; }
+
+    [Parameter]
+    public EventCallback<(Guid? AccountId, DateTime? From, DateTime? To, TransactionStatus? Status)> FilterChanged { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _accountIdText = AccountId?.ToString();
+    }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        _status = string.IsNullOrEmpty(value) ? null : Enum.Parse<TransactionStatus>(value);
+    }
+
+    private Task Submit()
+    {
+        _accountIdError = null;
+        Guid? accountId = null;
+
+        if (!string.IsNullOrWhiteSpace(_accountIdText))
+        {
+            if (Guid.TryParse(_accountIdText, out var parsed))
+            {
+                accountId = parsed;
+            }
+            else
+            {
+                _accountIdError = "Konto-ID muss eine gültige GUID sein.";
+                return Task.CompletedTask;
+            }
+        }
+
+        return FilterChanged.InvokeAsync((accountId, _from, _to, _status));
+    }
+}

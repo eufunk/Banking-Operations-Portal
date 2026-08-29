@@ -1,0 +1,71 @@
+@page "/transactions"
+@rendermode InteractiveServer
+@inject ITransactionsApiClient TransactionsApi
+
+<PageTitle>Transaktionen</PageTitle>
+
+<h1>Transaktionen</h1>
+
+<TransactionFilters AccountId="@_accountId" FilterChanged="OnFilterChanged" />
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_result is { IsSuccess: false })
+{
+    <ErrorAlert Title="Transaktionssuche fehlgeschlagen" Message="@(_result.ErrorMessage!)" />
+}
+else if (_result is { IsSuccess: true, Value: not null } success)
+{
+    <TransactionResultsGrid Transactions="@success.Value.Items" />
+    <PaginationControls
+        Page="@success.Value.Page"
+        TotalPages="@success.Value.TotalPages"
+        TotalCount="@success.Value.TotalCount"
+        PageChanged="OnPageChanged" />
+}
+
+@code {
+    private const int PageSize = 20;
+
+    [SupplyParameterFromQuery(Name = "accountId")]
+    public Guid? QueryAccountId { get; set; }
+
+    private Guid? _accountId;
+    private DateTime? _from;
+    private DateTime? _to;
+    private TransactionStatus? _status;
+    private int _page = 1;
+    private bool _loading = true;
+    private ApiResult<PagedResult<TransactionSummary>>? _result;
+
+    protected override Task OnInitializedAsync()
+    {
+        _accountId = QueryAccountId;
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _result = await TransactionsApi.SearchAsync(_accountId, _from, _to, _status, _page, PageSize, CancellationToken.None);
+        _loading = false;
+    }
+
+    private Task OnFilterChanged((Guid? AccountId, DateTime? From, DateTime? To, TransactionStatus? Status) filter)
+    {
+        _accountId = filter.AccountId;
+        _from = filter.From;
+        _to = filter.To;
+        _status = filter.Status;
+        _page = 1;
+        return LoadAsync();
+    }
+
+    private Task OnPageChanged(int page)
+    {
+        _page = page;
+        return LoadAsync();
+    }
+}

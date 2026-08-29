@@ -18,8 +18,8 @@ internal sealed class TransactionRepository : ITransactionRepository
     public Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken cancellationToken)
         => _dbContext.Transactions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
-    public async Task<PagedResult<Transaction>> SearchByAccountAsync(
-        AccountId accountId,
+    public async Task<PagedResult<Transaction>> SearchAsync(
+        AccountId? accountId,
         DateTime? from,
         DateTime? to,
         TransactionStatus? status,
@@ -27,7 +27,13 @@ internal sealed class TransactionRepository : ITransactionRepository
         int pageSize,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.Transactions.AsNoTracking().Where(t => t.AccountId == accountId);
+        var query = _dbContext.Transactions.AsNoTracking().AsQueryable();
+
+        if (accountId is not null)
+        {
+            // Nutzt den Index IX_Transactions_AccountId_BookingDate (Filter + Sortierung).
+            query = query.Where(t => t.AccountId == accountId.Value);
+        }
 
         if (from is not null)
         {
@@ -46,7 +52,6 @@ internal sealed class TransactionRepository : ITransactionRepository
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        // Nutzt bewusst den Index IX_Transactions_AccountId_BookingDate (Filter + Sortierung).
         var items = await query
             .OrderByDescending(t => t.BookingDate)
             .Skip((page - 1) * pageSize)

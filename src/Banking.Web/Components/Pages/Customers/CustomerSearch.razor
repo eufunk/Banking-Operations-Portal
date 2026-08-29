@@ -1,0 +1,60 @@
+@page "/customers"
+@rendermode InteractiveServer
+@inject ICustomersApiClient CustomersApi
+
+<PageTitle>Kunden</PageTitle>
+
+<h1>Kunden</h1>
+
+<CustomerSearchFilters SearchRequested="OnSearchRequested" />
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_result is { IsSuccess: false })
+{
+    <ErrorAlert Title="Kundensuche fehlgeschlagen" Message="@(_result.ErrorMessage!)" />
+}
+else if (_result is { IsSuccess: true, Value: not null } success)
+{
+    <CustomerResultsTable Customers="@success.Value.Items" />
+    <PaginationControls
+        Page="@success.Value.Page"
+        TotalPages="@success.Value.TotalPages"
+        TotalCount="@success.Value.TotalCount"
+        PageChanged="OnPageChanged" />
+}
+
+@code {
+    private const int PageSize = 20;
+
+    private string? _searchTerm;
+    private CustomerStatus? _status;
+    private int _page = 1;
+    private bool _loading = true;
+    private ApiResult<PagedResult<CustomerSummary>>? _result;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _result = await CustomersApi.SearchAsync(_searchTerm, _status, _page, PageSize, CancellationToken.None);
+        _loading = false;
+    }
+
+    private Task OnSearchRequested((string? SearchTerm, CustomerStatus? Status) filter)
+    {
+        _searchTerm = filter.SearchTerm;
+        _status = filter.Status;
+        _page = 1;
+        return LoadAsync();
+    }
+
+    private Task OnPageChanged(int page)
+    {
+        _page = page;
+        return LoadAsync();
+    }
+}

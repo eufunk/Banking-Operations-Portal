@@ -1,0 +1,55 @@
+@page "/payments"
+@rendermode InteractiveServer
+@inject IPaymentsApiClient PaymentsApi
+
+<PageTitle>Zahlungsauftrag erstellen</PageTitle>
+
+<h1>Zahlungsauftrag erstellen</h1>
+
+<PaymentForm OnSubmit="OnCreatePayment" Submitting="_submitting" />
+
+@if (_apiErrorMessage is not null)
+{
+    <ErrorAlert Title="Der Zahlungsauftrag konnte nicht erstellt werden" Message="@_apiErrorMessage" Details="@_apiErrors" />
+}
+
+@if (_createdPayment is not null)
+{
+    <PaymentStatusCard Payment="@_createdPayment" />
+}
+
+@code {
+    private bool _submitting;
+    private string? _apiErrorMessage;
+    private IReadOnlyList<string>? _apiErrors;
+    private PaymentDetails? _createdPayment;
+
+    private async Task OnCreatePayment(CreatePaymentRequest request)
+    {
+        _submitting = true;
+        _apiErrorMessage = null;
+        _apiErrors = null;
+        _createdPayment = null;
+
+        var result = await PaymentsApi.CreateAsync(request, CancellationToken.None);
+
+        if (result.IsSuccess)
+        {
+            // Statusanzeige lädt die frisch erstellte Zahlung erneut über GET, statt das
+            // Create-Response-DTO (nur Id+Status) direkt anzuzeigen - so sieht man
+            // dieselben Daten, die auch /payments/{id} später liefert.
+            var detailsResult = await PaymentsApi.GetByIdAsync(result.Value!.Id, CancellationToken.None);
+            if (detailsResult.IsSuccess)
+            {
+                _createdPayment = detailsResult.Value;
+            }
+        }
+        else
+        {
+            _apiErrorMessage = result.ErrorMessage;
+            _apiErrors = result.ErrorDetails;
+        }
+
+        _submitting = false;
+    }
+}

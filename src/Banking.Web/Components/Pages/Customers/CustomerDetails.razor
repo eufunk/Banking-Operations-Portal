@@ -1,0 +1,61 @@
+@page "/customers/{Id:guid}"
+@rendermode InteractiveServer
+@inject ICustomersApiClient CustomersApi
+@inject IAccountsApiClient AccountsApi
+
+<PageTitle>Kundendetails</PageTitle>
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_customerResult is { IsSuccess: false })
+{
+    <ErrorAlert Title="Kunde nicht gefunden" Message="@(_customerResult.ErrorMessage!)" />
+}
+else if (_customerResult is { IsSuccess: true, Value: not null } success)
+{
+    <h1>@success.Value.FirstName @success.Value.LastName</h1>
+
+    <dl class="detail-list">
+        <dt>Kundennummer</dt>
+        <dd>@success.Value.CustomerNumber</dd>
+        <dt>E-Mail</dt>
+        <dd>@success.Value.Email</dd>
+        <dt>Status</dt>
+        <dd><StatusBadge Status="@success.Value.Status.ToString()" /></dd>
+        <dt>Kunde seit</dt>
+        <dd>@success.Value.CreatedAt.ToLocalTime().ToString("d")</dd>
+    </dl>
+
+    <h2>Konten</h2>
+    @if (_accountsResult is { IsSuccess: true, Value: not null } accountsSuccess)
+    {
+        <CustomerAccountsList Accounts="@accountsSuccess.Value.Items" />
+    }
+    else if (_accountsResult is { IsSuccess: false })
+    {
+        <ErrorAlert Title="Konten konnten nicht geladen werden" Message="@(_accountsResult.ErrorMessage!)" />
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private ApiResult<CustomerDetailsDto>? _customerResult;
+    private ApiResult<PagedResult<AccountDetailsDto>>? _accountsResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _customerResult = await CustomersApi.GetByIdAsync(Id, CancellationToken.None);
+
+        if (_customerResult.IsSuccess)
+        {
+            _accountsResult = await AccountsApi.SearchAsync(Id, null, page: 1, pageSize: 50, CancellationToken.None);
+        }
+
+        _loading = false;
+    }
+}

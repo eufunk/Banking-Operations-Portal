@@ -1,0 +1,14 @@
+<span class="status-badge status-badge--@Variant">@Status</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Status { get; set; } = string.Empty;
+
+    private string Variant => Status.ToLowerInvariant() switch
+    {
+        "active" or "booked" or "executed" or "approved" => "success",
+        "pending" or "draft" or "pendingapproval" or "submitted" or "inactive" => "warning",
+        "failed" or "rejected" or "blocked" or "closed" or "reversed" => "danger",
+        _ => "neutral",
+    };
+}

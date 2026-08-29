@@ -1,0 +1,87 @@
+<EditForm Model="_model" OnValidSubmit="Submit" FormName="create-payment-form">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-field">
+        <label for="sourceAccountId">Quellkonto-ID</label>
+        <InputText id="sourceAccountId" @bind-Value="_model.SourceAccountId" placeholder="GUID des Quellkontos" />
+    </div>
+
+    <div class="form-field">
+        <label for="targetAccountNumber">Ziel-IBAN</label>
+        <InputText id="targetAccountNumber" @bind-Value="_model.TargetAccountNumber" />
+    </div>
+
+    <div class="form-field">
+        <label for="amount">Betrag</label>
+        <InputNumber id="amount" @bind-Value="_model.Amount" />
+    </div>
+
+    <div class="form-field">
+        <label for="currency">Währung</label>
+        <InputText id="currency" @bind-Value="_model.Currency" placeholder="EUR" />
+    </div>
+
+    <div class="form-field">
+        <label for="reference">Verwendungszweck</label>
+        <InputText id="reference" @bind-Value="_model.Reference" />
+    </div>
+
+    <button type="submit" disabled="@Submitting">
+        @(Submitting ? "Wird gesendet…" : "Zahlung anlegen")
+    </button>
+</EditForm>
+
+@code {
+    private readonly PaymentFormModel _model = new();
+
+    [Parameter]
+    public bool Submitting { get; set; }
+
+    [Parameter]
+    public EventCallback<CreatePaymentRequest> OnSubmit { get; set; }
+
+    private Task Submit()
+    {
+        // [Required]+[RegularExpression] auf SourceAccountId garantieren an dieser Stelle
+        // bereits ein gültiges GUID-Format - TryParse ist hier nur eine letzte Absicherung.
+        if (!Guid.TryParse(_model.SourceAccountId, out var sourceAccountId))
+        {
+            return Task.CompletedTask;
+        }
+
+        var request = new CreatePaymentRequest(
+            sourceAccountId, _model.TargetAccountNumber!, _model.Amount, _model.Currency!, _model.Reference!);
+
+        return OnSubmit.InvokeAsync(request);
+    }
+
+    /// <summary>
+    /// Client-seitige DataAnnotations für schnelles Feedback (leeres Feld, offensichtlich
+    /// falsches Format). Ersetzt nicht die serverseitige FluentValidation in der Api - die
+    /// bleibt die verbindliche Quelle der Wahrheit (z. B. Kontostatus/Währungsabgleich
+    /// kann nur der Server prüfen).
+    /// </summary>
+    private sealed class PaymentFormModel
+    {
+        [Required(ErrorMessage = "Quellkonto ist erforderlich.")]
+        [RegularExpression(@"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+            ErrorMessage = "Quellkonto muss eine gültige GUID sein.")]
+        public string SourceAccountId { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Zielkontonummer ist erforderlich.")]
+        [MaxLength(34, ErrorMessage = "Zielkontonummer darf maximal 34 Zeichen lang sein.")]
+        public string? TargetAccountNumber { get; set; }
+
+        [Range(0.01, double.MaxValue, ErrorMessage = "Der Betrag muss größer als 0 sein.")]
+        public decimal Amount { get; set; }
+
+        [Required(ErrorMessage = "Währung ist erforderlich.")]
+        [StringLength(3, MinimumLength = 3, ErrorMessage = "Währung muss ein 3-stelliger Code sein (z. B. EUR).")]
+        public string? Currency { get; set; } = "EUR";
+
+        [Required(ErrorMessage = "Verwendungszweck ist erforderlich.")]
+        [MaxLength(140, ErrorMessage = "Verwendungszweck darf maximal 140 Zeichen lang sein.")]
+        public string? Reference { get; set; }
+    }
+}

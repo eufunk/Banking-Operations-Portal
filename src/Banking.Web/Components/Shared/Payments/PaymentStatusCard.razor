@@ -1,0 +1,22 @@
+<div class="payment-status-card">
+    <h2>Zahlungsauftrag erstellt</h2>
+    <dl class="detail-list">
+        <dt>Id</dt>
+        <dd>@Payment.Id</dd>
+        <dt>Status</dt>
+        <dd><StatusBadge Status="@Payment.Status.ToString()" /></dd>
+        <dt>Betrag</dt>
+        <dd>@Payment.Amount.ToString("N2") @Payment.Currency</dd>
+        <dt>Ziel-IBAN</dt>
+        <dd>@Payment.TargetAccountNumber</dd>
+        <dt>Verwendungszweck</dt>
+        <dd>@Payment.Reference</dd>
+        <dt>Erstellt am</dt>
+        <dd>@Payment.CreatedAt.ToLocalTime().ToString("g")</dd>
+    </dl>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public PaymentDetails Payment { get; set; } = null!;
+}

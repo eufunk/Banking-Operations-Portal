@@ -1,0 +1,31 @@
+<EditForm Model="this" OnValidSubmit="Submit" FormName="customer-search-filters">
+    <div class="filter-bar">
+        <input type="search" placeholder="Name, E-Mail oder Kundennummer" @bind="_searchTerm" @bind:event="oninput" />
+
+        <select @onchange="OnStatusChanged">
+            <option value="">Alle Status</option>
+            @foreach (var status in Enum.GetValues<CustomerStatus>())
+            {
+                <option value="@status" selected="@(_status == status)">@status</option>
+            }
+        </select>
+
+        <button type="submit">Suchen</button>
+    </div>
+</EditForm>
+
+@code {
+    private string? _searchTerm;
+    private CustomerStatus? _status;
+
+    [Parameter]
+    public EventCallback<(string? SearchTerm, CustomerStatus? Status)> SearchRequested { get; set; }
+
+    private void OnStatusChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        _status = string.IsNullOrEmpty(value) ? null : Enum.Parse<CustomerStatus>(value);
+    }
+
+    private Task Submit() => SearchRequested.InvokeAsync((_searchTerm, _status));
+}

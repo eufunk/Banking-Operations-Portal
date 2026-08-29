@@ -1,0 +1,35 @@
+@if (Transactions.Count == 0)
+{
+    <p>Keine Transaktionen vorhanden.</p>
+}
+else
+{
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Typ</th>
+                <th>Betrag</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in Transactions)
+            {
+                <tr>
+                    <td>@transaction.BookingDate.ToLocalTime().ToString("g")</td>
+                    <td>@transaction.TransactionType</td>
+                    <td>@transaction.Amount.ToString("N2") @transaction.Currency</td>
+                    <td><StatusBadge Status="@transaction.Status.ToString()" /></td>
+                    <td><a href="@($"/transactions/{transaction.Id}")">Details</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TransactionSummary> Transactions { get; set; } = [];
+}

@@ -1,0 +1,24 @@
+<div class="error-alert" role="alert">
+    <strong>@Title</strong>
+    <p>@Message</p>
+    @if (Details is { Count: > 0 })
+    {
+        <ul>
+            @foreach (var detail in Details)
+            {
+                <li>@detail</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Fehler";
+
+    [Parameter, EditorRequired]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public IReadOnlyList<string>? Details { get; set; }
+}

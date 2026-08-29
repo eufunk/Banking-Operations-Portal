@@ -1,0 +1,62 @@
+@page "/accounts/{Id:guid}"
+@rendermode InteractiveServer
+@inject IAccountsApiClient AccountsApi
+@inject ITransactionsApiClient TransactionsApi
+
+<PageTitle>Kontodetails</PageTitle>
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_accountResult is { IsSuccess: false })
+{
+    <ErrorAlert Title="Konto nicht gefunden" Message="@(_accountResult.ErrorMessage!)" />
+}
+else if (_accountResult is { IsSuccess: true, Value: not null } success)
+{
+    <h1>Konto @success.Value.AccountNumber</h1>
+
+    <dl class="detail-list">
+        <dt>Typ</dt>
+        <dd>@success.Value.AccountType</dd>
+        <dt>Saldo</dt>
+        <dd>@success.Value.Balance.ToString("N2") @success.Value.Currency</dd>
+        <dt>Status</dt>
+        <dd><StatusBadge Status="@success.Value.Status.ToString()" /></dd>
+        <dt>Kunde</dt>
+        <dd><a href="@($"/customers/{success.Value.CustomerId}")">Kundendetails ansehen</a></dd>
+    </dl>
+
+    <h2>Letzte Transaktionen</h2>
+    @if (_transactionsResult is { IsSuccess: true, Value: not null } transactionsSuccess)
+    {
+        <RecentTransactionsList Transactions="@transactionsSuccess.Value.Items" />
+        <p><a href="@($"/transactions?accountId={success.Value.Id}")">Alle Transaktionen dieses Kontos ansehen</a></p>
+    }
+    else if (_transactionsResult is { IsSuccess: false })
+    {
+        <ErrorAlert Title="Transaktionen konnten nicht geladen werden" Message="@(_transactionsResult.ErrorMessage!)" />
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private ApiResult<AccountDetailsDto>? _accountResult;
+    private ApiResult<PagedResult<TransactionSummary>>? _transactionsResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accountResult = await AccountsApi.GetByIdAsync(Id, CancellationToken.None);
+
+        if (_accountResult.IsSuccess)
+        {
+            _transactionsResult = await TransactionsApi.SearchAsync(Id, null, null, null, page: 1, pageSize: 10, CancellationToken.None);
+        }
+
+        _loading = false;
+    }
+}

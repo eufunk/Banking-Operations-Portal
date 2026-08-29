@@ -35,14 +35,17 @@ public sealed class SearchTransactionsHandler : IQueryHandler<SearchTransactions
                 validationResult.Errors.Select(e => e.ErrorMessage).ToArray()));
         }
 
-        var account = await _accountRepository.GetByIdAsync(query.AccountId, cancellationToken);
-        if (account is null)
+        if (query.AccountId is not null)
         {
-            return Result<PagedResult<TransactionSummaryDto>>.Failure(Error.NotFound(
-                "Account.NotFound", $"Konto {query.AccountId} wurde nicht gefunden."));
+            var account = await _accountRepository.GetByIdAsync(query.AccountId.Value, cancellationToken);
+            if (account is null)
+            {
+                return Result<PagedResult<TransactionSummaryDto>>.Failure(Error.NotFound(
+                    "Account.NotFound", $"Konto {query.AccountId} wurde nicht gefunden."));
+            }
         }
 
-        var transactions = await _transactionRepository.SearchByAccountAsync(
+        var transactions = await _transactionRepository.SearchAsync(
             query.AccountId, query.From, query.To, query.Status, query.Page, query.PageSize, cancellationToken);
 
         var items = transactions.Items

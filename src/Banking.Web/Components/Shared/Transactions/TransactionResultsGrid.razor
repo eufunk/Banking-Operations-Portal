@@ -1,0 +1,28 @@
+@if (Transactions.Count == 0)
+{
+    <p>Keine Transaktionen gefunden.</p>
+}
+else
+{
+    <!--
+        QuickGrid (kostenlos, offiziell von Microsoft) statt Telerik-Grid - siehe Directory.Packages.props.
+        Sortiert hier innerhalb der aktuell geladenen Seite (Items ist eine bereits vom
+        Server paginierte Liste); Paging selbst läuft über PaginationControls + die Api,
+        nicht über QuickGrids eigene Pagination.
+    -->
+    <QuickGrid Items="@Transactions.AsQueryable()" Class="data-table">
+        <PropertyColumn Property="@(t => t.BookingDate)" Title="Datum" Sortable="true" Format="g" />
+        <PropertyColumn Property="@(t => t.TransactionType)" Title="Typ" Sortable="true" />
+        <PropertyColumn Property="@(t => t.Amount)" Title="Betrag" Sortable="true" Format="N2" Align="Align.End" />
+        <PropertyColumn Property="@(t => t.Status)" Title="Status" Sortable="true" />
+        <PropertyColumn Property="@(t => t.Description)" Title="Beschreibung" />
+        <TemplateColumn Title="">
+            <a href="@($"/transactions/{context.Id}")">Details</a>
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<TransactionSummary> Transactions { get; set; } = [];
+}

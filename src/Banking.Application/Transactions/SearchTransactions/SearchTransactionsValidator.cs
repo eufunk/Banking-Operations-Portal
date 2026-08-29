@@ -6,9 +6,6 @@ public sealed class SearchTransactionsValidator : AbstractValidator<SearchTransa
 {
     public SearchTransactionsValidator()
     {
-        RuleFor(q => q.AccountId.Value).NotEqual(Guid.Empty)
-            .WithMessage("AccountId ist erforderlich.");
-
         RuleFor(q => q.Page).GreaterThanOrEqualTo(1)
             .WithMessage("Page muss mindestens 1 sein.");
 

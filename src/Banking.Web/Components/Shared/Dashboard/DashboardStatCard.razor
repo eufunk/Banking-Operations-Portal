@@ -1,0 +1,15 @@
+<div class="stat-card stat-card--@Variant">
+    <div class="stat-card__value">@Value</div>
+    <div class="stat-card__label">@Label</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Variant { get; set; } = "neutral";
+}

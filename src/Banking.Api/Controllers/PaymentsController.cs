@@ -1,9 +1,11 @@
 using Banking.Api.Contracts.Payments;
 using Banking.Api.Extensions;
 using Banking.Application.Common.Messaging;
+using Banking.Application.Common.Pagination;
 using Banking.Application.Payments.CreatePayment;
 using Banking.Application.Payments.Dtos;
 using Banking.Application.Payments.GetPayment;
+using Banking.Application.Payments.SearchPayments;
 using Banking.Domain.Accounts;
 using Banking.Domain.Payments;
 using Microsoft.AspNetCore.Mvc;
@@ -16,16 +18,42 @@ public sealed class PaymentsController : ControllerBase
 {
     private readonly ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto> _createPayment;
     private readonly IQueryHandler<GetPaymentQuery, PaymentDetailsDto> _getPayment;
+    private readonly IQueryHandler<SearchPaymentsQuery, PagedResult<PaymentDetailsDto>> _searchPayments;
     private readonly ILogger<PaymentsController> _logger;
 
     public PaymentsController(
         ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto> createPayment,
         IQueryHandler<GetPaymentQuery, PaymentDetailsDto> getPayment,
+        IQueryHandler<SearchPaymentsQuery, PagedResult<PaymentDetailsDto>> searchPayments,
         ILogger<PaymentsController> logger)
     {
         _createPayment = createPayment;
         _getPayment = getPayment;
+        _searchPayments = searchPayments;
         _logger = logger;
+    }
+
+    /// <summary>GET /api/payments - Zahlungsaufträge suchen/filtern, paginiert.</summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<PaymentDetailsDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<PaymentDetailsDto>>> Search(
+        [FromQuery] Guid? sourceAccountId,
+        [FromQuery] PaymentStatus? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Zahlungssuche: sourceAccountId={SourceAccountId}, status={Status}, page={Page}, pageSize={PageSize}",
+            sourceAccountId, status, page, pageSize);
+
+        var query = new SearchPaymentsQuery(
+            sourceAccountId.HasValue ? new AccountId(sourceAccountId.Value) : null, status, page, pageSize);
+
+        var result = await _searchPayments.Handle(query, cancellationToken);
+
+        return result.ToActionResult();
     }
 
     /// <summary>POST /api/payments - legt einen neuen Zahlungsauftrag im Status Draft an.</summary>

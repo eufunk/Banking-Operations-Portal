@@ -1,6 +1,14 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-@Body
+<div class="page">
+    <header class="page-header">
+        <span class="page-header__title">Banking Operations Portal</span>
+        <NavMenu />
+    </header>
+    <main class="page-content">
+        @Body
+    </main>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

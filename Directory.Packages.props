@@ -23,6 +23,12 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
 
+    <!-- Banking.Web -->
+    <!-- Kostenlose, offizielle Microsoft-Komponente statt Telerik UI for Blazor: keine
+         Lizenz/kein privater NuGet-Feed konfiguriert. Funktional (Sorting/Paging) identisch
+         für unseren Bedarf, später 1:1 gegen TelerikGrid austauschbar. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Components.QuickGrid" Version="10.0.11" />
+
     <!-- Banking.Infrastructure -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />

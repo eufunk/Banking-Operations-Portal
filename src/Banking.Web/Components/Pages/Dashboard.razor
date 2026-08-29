@@ -1,0 +1,42 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@inject IDashboardService DashboardService
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1>Dashboard</h1>
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_result is { IsSuccess: false })
+{
+    <ErrorAlert Title="Dashboard konnte nicht geladen werden" Message="@(_result.ErrorMessage!)" />
+}
+else if (_result is { IsSuccess: true, Value: not null } success)
+{
+    <div class="dashboard-stats">
+        <DashboardStatCard Label="Kunden" Value="@success.Value.CustomerCount.ToString()" />
+        <DashboardStatCard Label="Konten" Value="@success.Value.AccountCount.ToString()" />
+        <DashboardStatCard Label="Zahlungsaufträge" Value="@success.Value.PaymentCount.ToString()" />
+        <DashboardStatCard
+            Label="Fehlgeschlagene Zahlungen"
+            Value="@success.Value.FailedPaymentCount.ToString()"
+            Variant="@(success.Value.FailedPaymentCount > 0 ? "danger" : "neutral")" />
+    </div>
+
+    <h2>Letzte Transaktionen</h2>
+    <RecentTransactionsList Transactions="@success.Value.RecentTransactions" />
+}
+
+@code {
+    private bool _loading = true;
+    private ApiResult<DashboardSummary>? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _result = await DashboardService.GetSummaryAsync(CancellationToken.None);
+        _loading = false;
+    }
+}

@@ -1,0 +1,37 @@
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Kontonummer</th>
+            <th>Typ</th>
+            <th>Saldo</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Accounts.Count == 0)
+        {
+            <tr>
+                <td colspan="5">Keine Konten vorhanden.</td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var account in Accounts)
+            {
+                <tr>
+                    <td>@account.AccountNumber</td>
+                    <td>@account.AccountType</td>
+                    <td>@account.Balance.ToString("N2") @account.Currency</td>
+                    <td><StatusBadge Status="@account.Status.ToString()" /></td>
+                    <td><a href="@($"/accounts/{account.Id}")">Details</a></td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<AccountDetailsDto> Accounts { get; set; } = [];
+}
