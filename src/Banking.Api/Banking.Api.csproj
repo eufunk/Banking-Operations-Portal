@@ -4,6 +4,15 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <!-- Direktreferenz überschreibt die transitive Microsoft.OpenApi 2.0.0 aus obigem Paket (GHSA-v5pm-xwqc-g5wc, High Severity) -->
     <PackageReference Include="Microsoft.OpenApi" />
+    <!-- Nur für EF-Core-Migrations-Tooling (dotnet ef) benötigt, nicht zur Laufzeit -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>

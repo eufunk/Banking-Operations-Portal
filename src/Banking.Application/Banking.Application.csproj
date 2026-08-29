@@ -4,4 +4,10 @@
     <ProjectReference Include="..\Banking.Domain\Banking.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Reine Klassenbibliotheken, keine ASP.NET-Core-Kopplung -->
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
 </Project>

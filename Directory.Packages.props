@@ -15,6 +15,22 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.7" />
     <!-- Explizit gepinnt: behebt GHSA-v5pm-xwqc-g5wc (High Severity) aus Microsoft.AspNetCore.OpenApi 10.0.7 -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+    <!-- EF-Core-Tooling (Migrations) - läuft über das Api-Projekt als Startup-Projekt -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11" />
+
+    <!-- Banking.Application -->
+    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+
+    <!-- Banking.Infrastructure -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
+    <!-- Direkt gepinnt: EF Core 10.0.11 zieht transitiv Microsoft.Data.SqlClient 6.1.6 mit
+         SNI.runtime 6.0.2 - dieser Versionsstand lädt die native SNI-DLL nicht zuverlässig
+         gegen aktuelle LocalDB-Installationen (SQL Server 2025 LocalDB, Fehler beim Laden
+         der SqlUserInstance-Ressourcen). Neueste stabile Version behebt das. -->
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
 
     <!-- Testprojekte -->
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
