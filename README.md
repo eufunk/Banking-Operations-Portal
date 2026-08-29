@@ -7,7 +7,7 @@ Portfolio-Projekt zur Vorbereitung auf .NET/C#/Azure-Enterprise-Entwicklung im B
 ## Tech-Stack
 
 - **Backend:** .NET 10 (LTS), ASP.NET Core Web API, Entity Framework Core
-- **Frontend:** Blazor Server, Telerik UI for Blazor
+- **Frontend:** Blazor Server, Microsoft.AspNetCore.Components.QuickGrid (statt Telerik UI for Blazor – kommerzielle Lizenz war nicht zugänglich, siehe [ADR-Backlog](docs/adr/decisions-backlog.md))
 - **Architektur:** Modular Monolith nach Clean-Architecture-Prinzipien
 - **Cloud:** Azure App Service, Azure SQL, Key Vault, App Configuration, Application Insights, Data Factory
 - **Tests:** xUnit (Unit- und Integrationstests)

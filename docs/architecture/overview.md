@@ -31,7 +31,7 @@ graph TD
 | `Banking.Application` | Use Cases (Application Services), DTOs, Interfaces für Repositories/externe Systeme, Validierung, Mapping | `Banking.Domain` |
 | `Banking.Infrastructure` | EF Core DbContext, Repository-Implementierungen, SAP-RFC-Adapter, externe REST-Clients, Azure-Integrationen (Key Vault, App Config) | `Banking.Application`, `Banking.Domain` |
 | `Banking.Api` | Controller, API-Versionierung, Middleware (Error Handling, Auth), Composition Root (DI-Registrierung), Swagger | `Banking.Application`, `Banking.Infrastructure` (nur zur Registrierung in `Program.cs`) |
-| `Banking.Web` | Blazor Server UI, Telerik-Komponenten, typisierte HttpClients zur API | eigene ViewModels/DTOs + generierte API-Clients – **nicht** `Banking.Application`/`Domain`/`Infrastructure` |
+| `Banking.Web` | Blazor Server UI, QuickGrid-Komponenten (statt Telerik UI for Blazor, siehe [decisions-backlog.md](../adr/decisions-backlog.md)), typisierte HttpClients zur API | eigene ViewModels/DTOs + generierte API-Clients – **nicht** `Banking.Application`/`Domain`/`Infrastructure` |
 
 ## 3. Wichtige Entscheidung: Wie kommuniziert Blazor Server mit dem Backend?
 

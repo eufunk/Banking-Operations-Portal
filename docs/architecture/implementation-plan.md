@@ -10,7 +10,7 @@ Reihenfolge ist bewusst so gewählt, dass jede Phase auf einem lauffähigen, tes
 | **3** | Infrastructure: EF Core `DbContext`, erste Migration, Repository-Implementierung, lokale Entwicklungsdatenbank (SQL Server LocalDB oder SQLite) | Persistenz funktioniert, Migration ausführbar |
 | **4** | Api: Controller für Customers, DI-Verdrahtung (Composition Root), globale Exception-Middleware, Swagger/OpenAPI, API-Versionierung | Erste lauffähige REST-API, manuell testbar über Swagger |
 | **5** | `Banking.IntegrationTests`: `WebApplicationFactory`, Tests gegen echte (Test-)Datenbank | Abgesicherter Regressionstest für den kompletten Customers-Slice |
-| **6** | Web: Blazor Server Grundgerüst + Telerik UI, erste Seite "Kundenliste/-suche" über typisierten HttpClient gegen die Api | End-to-end sichtbares Feature: Kunde suchen im Browser |
+| **6** | Web: Blazor Server Grundgerüst + QuickGrid (statt Telerik UI for Blazor, siehe ADR-Backlog), erste Seite "Kundenliste/-suche" über typisierten HttpClient gegen die Api | End-to-end sichtbares Feature: Kunde suchen im Browser |
 | **7** | Security-Grundlage: Azure AD/Entra ID Authentifizierung, Autorisierungs-Policies, Secrets lokal über User Secrets (noch nicht Key Vault) | Login funktioniert, API abgesichert |
 | **8** | Cross-Cutting fertigstellen: Serilog-Logging, strukturierte Fehlerantworten (ProblemDetails), Health-Check-Endpoint | Produktionsnahe Grundqualität etabliert, bevor weitere Module folgen |
 | **9** | Weitere Module horizontal ergänzen: **Accounts**, dann **Transactions** (gleiches Muster wie Customers: Domain → Application → Infrastructure → Api → Web) | Kernbanking-Funktionalität wächst |
