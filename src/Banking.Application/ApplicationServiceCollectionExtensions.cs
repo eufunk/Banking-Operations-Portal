@@ -6,10 +6,12 @@ using Banking.Application.Common.Pagination;
 using Banking.Application.Customers.Dtos;
 using Banking.Application.Customers.GetCustomerDetails;
 using Banking.Application.Customers.SearchCustomers;
+using Banking.Application.Payments.ApprovePayment;
 using Banking.Application.Payments.CreatePayment;
 using Banking.Application.Payments.Dtos;
 using Banking.Application.Payments.GetPayment;
 using Banking.Application.Payments.GetPaymentStatus;
+using Banking.Application.Payments.RejectPayment;
 using Banking.Application.Payments.SearchPayments;
 using Banking.Application.Transactions.Dtos;
 using Banking.Application.Transactions.GetTransactionDetails;
@@ -36,6 +38,8 @@ public static class ApplicationServiceCollectionExtensions
 
         // Command Handler
         services.AddScoped<ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto>, CreatePaymentHandler>();
+        services.AddScoped<ICommandHandler<ApprovePaymentCommand, PaymentStatusDto>, ApprovePaymentHandler>();
+        services.AddScoped<ICommandHandler<RejectPaymentCommand, PaymentStatusDto>, RejectPaymentHandler>();
 
         // Validators
         services.AddScoped<IValidator<SearchCustomersQuery>, SearchCustomersValidator>();

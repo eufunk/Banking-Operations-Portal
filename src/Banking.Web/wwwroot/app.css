@@ -236,3 +236,38 @@ body {
 .payment-status-card {
     margin-top: 1.5rem;
 }
+
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #d7e3f4;
+    font-size: 0.9rem;
+}
+
+.nav-user__name {
+    font-weight: 600;
+    color: white;
+}
+
+.link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #d7e3f4;
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+}
+
+.demo-hint {
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+}
+
+.approval-panel {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+}

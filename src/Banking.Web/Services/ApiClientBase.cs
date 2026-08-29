@@ -32,6 +32,13 @@ public abstract class ApiClientBase
         return await ToApiResultAsync<TResponse>(response, cancellationToken);
     }
 
+    /// <summary>Für POSTs ohne Body (z. B. Statusübergänge wie Approve/Reject).</summary>
+    protected async Task<ApiResult<TResponse>> PostAsync<TResponse>(string requestUri, CancellationToken cancellationToken)
+    {
+        using var response = await HttpClient.PostAsync(requestUri, content: null, cancellationToken);
+        return await ToApiResultAsync<TResponse>(response, cancellationToken);
+    }
+
     private async Task<ApiResult<T>> ToApiResultAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)

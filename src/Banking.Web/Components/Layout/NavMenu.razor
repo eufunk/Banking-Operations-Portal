@@ -1,6 +1,28 @@
 <nav class="main-nav">
-    <NavLink href="/dashboard">Dashboard</NavLink>
-    <NavLink href="/customers">Kunden</NavLink>
-    <NavLink href="/transactions">Transaktionen</NavLink>
-    <NavLink href="/payments">Zahlungen</NavLink>
+    <AuthorizeView>
+        <Authorized>
+            <NavLink href="/dashboard">Dashboard</NavLink>
+            <NavLink href="/customers">Kunden</NavLink>
+            <NavLink href="/transactions">Transaktionen</NavLink>
+            <NavLink href="/payments">Zahlungen</NavLink>
+        </Authorized>
+    </AuthorizeView>
 </nav>
+
+<div class="nav-user">
+    <AuthorizeView>
+        <Authorized>
+            <span class="nav-user__name">@context.User.Identity!.Name</span>
+            @* Logout ist bewusst ein POST-Formular mit Antiforgery-Token, kein einfacher
+               GET-Link - ein GET-Logout liesse sich per verlinktem Bild/CSRF von außen
+               auslösen (klassischer, kleiner, aber vermeidbarer Fehler). *@
+            <form method="post" action="/account/logout">
+                <AntiforgeryToken />
+                <button type="submit" class="link-button">Abmelden</button>
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <NavLink href="/login">Anmelden</NavLink>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>

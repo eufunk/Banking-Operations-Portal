@@ -1,5 +1,6 @@
 @page "/payments"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
 @inject IPaymentsApiClient PaymentsApi
 
 <PageTitle>Zahlungsauftrag erstellen</PageTitle>
@@ -17,6 +18,8 @@
 {
     <PaymentStatusCard Payment="@_createdPayment" />
 }
+
+<PendingApprovalsPanel />
 
 @code {
     private bool _submitting;

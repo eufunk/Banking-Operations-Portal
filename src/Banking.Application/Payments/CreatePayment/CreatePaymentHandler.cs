@@ -89,6 +89,11 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
             return Result<CreatePaymentResultDto>.Failure(Error.Validation("Payment.Invalid", ex.Message));
         }
 
+        // Direkt zur Freigabe einreichen: BankEmployee legt an, OperationsManager
+        // genehmigt/lehnt ab (siehe ApprovePayment/RejectPayment). Ein Draft-Zwischenstand
+        // ohne Freigabe-Workflow wäre für dieses Portal ohne Mehrwert.
+        payment.SubmitForApproval();
+
         await _paymentRepository.AddAsync(payment, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

@@ -1,5 +1,6 @@
 @page "/transactions"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
 @inject ITransactionsApiClient TransactionsApi
 
 <PageTitle>Transaktionen</PageTitle>

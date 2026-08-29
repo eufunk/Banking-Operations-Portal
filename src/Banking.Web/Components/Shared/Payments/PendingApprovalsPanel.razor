@@ -1,0 +1,82 @@
+@* "Payments bearbeiten" ist ein OperationsManager-Recht - die UI blendet diesen Bereich
+   für BankEmployee zwar aus, das ist aber nur Komfort, keine Sicherheitsmaßnahme: die
+   Approve/Reject-Endpunkte prüfen die Rolle unabhängig davon serverseitig
+   (PaymentsController, [Authorize(Roles = Roles.OperationsManager)]). *@
+<AuthorizeView Roles="@Roles.OperationsManager">
+    <Authorized>
+        <div class="approval-panel">
+            <h2>Zahlungen zur Freigabe</h2>
+
+            @if (_loading)
+            {
+                <LoadingIndicator />
+            }
+            else if (_result is { IsSuccess: false })
+            {
+                <ErrorAlert Title="Konnte nicht geladen werden" Message="@(_result.ErrorMessage!)" />
+            }
+            else if (_result is { IsSuccess: true, Value.Items.Count: 0 })
+            {
+                <p>Keine Zahlungen warten aktuell auf Freigabe.</p>
+            }
+            else if (_result is { IsSuccess: true, Value: not null } success)
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Betrag</th>
+                            <th>Ziel-IBAN</th>
+                            <th>Verwendungszweck</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in success.Value.Items)
+                        {
+                            <tr>
+                                <td>@payment.Amount.ToString("N2") @payment.Currency</td>
+                                <td>@payment.TargetAccountNumber</td>
+                                <td>@payment.Reference</td>
+                                <td><StatusBadge Status="@payment.Status.ToString()" /></td>
+                                <td>
+                                    <button type="button" @onclick="() => Approve(payment.Id)">Genehmigen</button>
+                                    <button type="button" @onclick="() => Reject(payment.Id)">Ablehnen</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    [Inject]
+    private IPaymentsApiClient PaymentsApi { get; set; } = default!;
+
+    private bool _loading = true;
+    private ApiResult<PagedResult<PaymentDetails>>? _result;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _result = await PaymentsApi.SearchAsync(null, PaymentStatus.PendingApproval, page: 1, pageSize: 20, CancellationToken.None);
+        _loading = false;
+    }
+
+    private async Task Approve(Guid id)
+    {
+        await PaymentsApi.ApproveAsync(id, CancellationToken.None);
+        await LoadAsync();
+    }
+
+    private async Task Reject(Guid id)
+    {
+        await PaymentsApi.RejectAsync(id, CancellationToken.None);
+        await LoadAsync();
+    }
+}

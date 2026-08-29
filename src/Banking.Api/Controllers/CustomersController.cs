@@ -1,16 +1,21 @@
 using Banking.Api.Extensions;
+using Banking.Api.Security;
 using Banking.Application.Common.Messaging;
 using Banking.Application.Common.Pagination;
 using Banking.Application.Customers.Dtos;
 using Banking.Application.Customers.GetCustomerDetails;
 using Banking.Application.Customers.SearchCustomers;
 using Banking.Domain.Customers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Controllers;
 
+/// <summary>"Kunden lesen" - BankEmployee-Recht, daher auch für OperationsManager/Administrator
+/// zugänglich (deren Token trägt zusätzlich die BankEmployee-Rollen-Claim, siehe RoleHierarchy in Banking.Web).</summary>
 [ApiController]
 [Route("api/customers")]
+[Authorize(Roles = Roles.BankEmployee)]
 public sealed class CustomersController : ControllerBase
 {
     private readonly IQueryHandler<SearchCustomersQuery, PagedResult<CustomerSummaryDto>> _searchCustomers;

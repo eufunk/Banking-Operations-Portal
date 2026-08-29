@@ -1,33 +1,48 @@
 using Banking.Api.Contracts.Payments;
 using Banking.Api.Extensions;
+using Banking.Api.Security;
 using Banking.Application.Common.Messaging;
 using Banking.Application.Common.Pagination;
+using Banking.Application.Payments.ApprovePayment;
 using Banking.Application.Payments.CreatePayment;
 using Banking.Application.Payments.Dtos;
 using Banking.Application.Payments.GetPayment;
+using Banking.Application.Payments.RejectPayment;
 using Banking.Application.Payments.SearchPayments;
 using Banking.Domain.Accounts;
 using Banking.Domain.Payments;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Controllers;
 
+/// <summary>
+/// "Payments erstellen" ist ein BankEmployee-Recht (Klassenebene). "Payments bearbeiten"
+/// (Approve/Reject) ist strenger und wird pro Action auf OperationsManager angehoben.
+/// </summary>
 [ApiController]
 [Route("api/payments")]
+[Authorize(Roles = Roles.BankEmployee)]
 public sealed class PaymentsController : ControllerBase
 {
     private readonly ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto> _createPayment;
+    private readonly ICommandHandler<ApprovePaymentCommand, PaymentStatusDto> _approvePayment;
+    private readonly ICommandHandler<RejectPaymentCommand, PaymentStatusDto> _rejectPayment;
     private readonly IQueryHandler<GetPaymentQuery, PaymentDetailsDto> _getPayment;
     private readonly IQueryHandler<SearchPaymentsQuery, PagedResult<PaymentDetailsDto>> _searchPayments;
     private readonly ILogger<PaymentsController> _logger;
 
     public PaymentsController(
         ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto> createPayment,
+        ICommandHandler<ApprovePaymentCommand, PaymentStatusDto> approvePayment,
+        ICommandHandler<RejectPaymentCommand, PaymentStatusDto> rejectPayment,
         IQueryHandler<GetPaymentQuery, PaymentDetailsDto> getPayment,
         IQueryHandler<SearchPaymentsQuery, PagedResult<PaymentDetailsDto>> searchPayments,
         ILogger<PaymentsController> logger)
     {
         _createPayment = createPayment;
+        _approvePayment = approvePayment;
+        _rejectPayment = rejectPayment;
         _getPayment = getPayment;
         _searchPayments = searchPayments;
         _logger = logger;
@@ -56,7 +71,7 @@ public sealed class PaymentsController : ControllerBase
         return result.ToActionResult();
     }
 
-    /// <summary>POST /api/payments - legt einen neuen Zahlungsauftrag im Status Draft an.</summary>
+    /// <summary>POST /api/payments - legt einen neuen Zahlungsauftrag an und reicht ihn direkt zur Freigabe ein.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(CreatePaymentResultDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -96,6 +111,36 @@ public sealed class PaymentsController : ControllerBase
         _logger.LogInformation("Zahlungsauftragsdetails angefragt: {PaymentId}", id);
 
         var result = await _getPayment.Handle(new GetPaymentQuery(new PaymentId(id)), cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    /// <summary>POST /api/payments/{id}/approve - "Payments bearbeiten": nur OperationsManager (und Administrator).</summary>
+    [HttpPost("{id:guid}/approve")]
+    [Authorize(Roles = Roles.OperationsManager)]
+    [ProducesResponseType(typeof(PaymentStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PaymentStatusDto>> Approve(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Zahlungsauftrag wird genehmigt: {PaymentId}", id);
+
+        var result = await _approvePayment.Handle(new ApprovePaymentCommand(new PaymentId(id)), cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    /// <summary>POST /api/payments/{id}/reject - "Payments bearbeiten": nur OperationsManager (und Administrator).</summary>
+    [HttpPost("{id:guid}/reject")]
+    [Authorize(Roles = Roles.OperationsManager)]
+    [ProducesResponseType(typeof(PaymentStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PaymentStatusDto>> Reject(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Zahlungsauftrag wird abgelehnt: {PaymentId}", id);
+
+        var result = await _rejectPayment.Handle(new RejectPaymentCommand(new PaymentId(id)), cancellationToken);
 
         return result.ToActionResult();
     }

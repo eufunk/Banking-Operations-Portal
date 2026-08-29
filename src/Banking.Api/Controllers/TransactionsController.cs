@@ -1,4 +1,5 @@
 using Banking.Api.Extensions;
+using Banking.Api.Security;
 using Banking.Application.Common.Messaging;
 using Banking.Application.Common.Pagination;
 using Banking.Application.Transactions.Dtos;
@@ -6,12 +7,15 @@ using Banking.Application.Transactions.GetTransactionDetails;
 using Banking.Application.Transactions.SearchTransactions;
 using Banking.Domain.Accounts;
 using Banking.Domain.Transactions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Controllers;
 
+/// <summary>"Transaktionen lesen" - BankEmployee-Recht.</summary>
 [ApiController]
 [Route("api/transactions")]
+[Authorize(Roles = Roles.BankEmployee)]
 public sealed class TransactionsController : ControllerBase
 {
     private readonly IQueryHandler<SearchTransactionsQuery, PagedResult<TransactionSummaryDto>> _searchTransactions;

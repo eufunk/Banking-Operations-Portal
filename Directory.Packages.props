@@ -18,6 +18,7 @@
     <!-- EF-Core-Tooling (Migrations) - läuft über das Api-Projekt als Startup-Projekt -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
 
     <!-- Banking.Application -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
@@ -28,6 +29,8 @@
          Lizenz/kein privater NuGet-Feed konfiguriert. Funktional (Sorting/Paging) identisch
          für unseren Bedarf, später 1:1 gegen TelerikGrid austauschbar. -->
     <PackageVersion Include="Microsoft.AspNetCore.Components.QuickGrid" Version="10.0.11" />
+    <!-- Web mintet nach Cookie-Login ein kurzlebiges JWT für ausgehende Api-Aufrufe (BFF-Pattern) -->
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
 
     <!-- Banking.Infrastructure -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />

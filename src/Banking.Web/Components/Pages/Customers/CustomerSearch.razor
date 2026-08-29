@@ -1,5 +1,6 @@
 @page "/customers"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
 @inject ICustomersApiClient CustomersApi
 
 <PageTitle>Kunden</PageTitle>

@@ -1,5 +1,6 @@
 @page "/dashboard"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
 @inject IDashboardService DashboardService
 
 <PageTitle>Dashboard</PageTitle>

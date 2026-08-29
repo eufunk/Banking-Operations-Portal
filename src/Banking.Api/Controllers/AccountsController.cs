@@ -1,4 +1,5 @@
 using Banking.Api.Extensions;
+using Banking.Api.Security;
 using Banking.Application.Accounts.Dtos;
 using Banking.Application.Accounts.GetAccountDetails;
 using Banking.Application.Accounts.SearchAccounts;
@@ -6,12 +7,15 @@ using Banking.Application.Common.Messaging;
 using Banking.Application.Common.Pagination;
 using Banking.Domain.Accounts;
 using Banking.Domain.Customers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Banking.Api.Controllers;
 
+/// <summary>"Konten lesen" - BankEmployee-Recht.</summary>
 [ApiController]
 [Route("api/accounts")]
+[Authorize(Roles = Roles.BankEmployee)]
 public sealed class AccountsController : ControllerBase
 {
     private readonly IQueryHandler<SearchAccountsQuery, PagedResult<AccountDetailsDto>> _searchAccounts;

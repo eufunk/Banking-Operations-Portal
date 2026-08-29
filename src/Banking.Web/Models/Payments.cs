@@ -12,6 +12,8 @@ public sealed record PaymentDetails(
 
 public sealed record CreatePaymentResult(Guid Id, PaymentStatus Status);
 
+public sealed record PaymentStatusResult(Guid Id, PaymentStatus Status);
+
 /// <summary>Spiegelt Banking.Api.Contracts.Payments.CreatePaymentRequest - eigener Vertrag, siehe ADR-0002.</summary>
 public sealed record CreatePaymentRequest(
     Guid SourceAccountId,

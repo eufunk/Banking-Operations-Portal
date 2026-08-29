@@ -1,8 +1,12 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using Banking.Api.Middleware;
 using Banking.Api.Serialization;
 using Banking.Application;
 using Banking.Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +28,49 @@ builder.Services.AddControllers()
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+// --- Authentication/Authorization ---
+// JWT-Bearer, ausgestellt von Banking.Web nach erfolgreichem Cookie-Login (BFF-Pattern:
+// Web authentifiziert den Browser-Nutzer per Cookie, mintet pro Api-Aufruf ein
+// kurzlebiges JWT mit den Rollen-Claims des Nutzers). Die Api validiert dieses Token
+// komplett unabhängig von der UI - das ist die eigentliche Sicherheitsgrenze, nicht die
+// Blazor-Seite. Symmetrischer Schlüssel nur für dieses lokale/Demo-Setup; in Produktion
+// würde hier stattdessen gegen die öffentlichen Signaturschlüssel von Azure AD/Entra ID
+// validiert (OIDC-Discovery), ohne einen geteilten Secret-Schlüssel zu benötigen.
+var jwtSigningKey = builder.Configuration["Jwt:SigningKey"]
+    ?? throw new InvalidOperationException("Jwt:SigningKey ist nicht konfiguriert (siehe User Secrets).");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException("Jwt:Issuer ist nicht konfiguriert.");
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException("Jwt:Audience ist nicht konfiguriert.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSigningKey)),
+            ValidateLifetime = true,
+            // Tokens sind absichtlich kurzlebig (siehe Web/Security/JwtTokenIssuer) -
+            // keine zusätzliche Toleranz für abgelaufene Tokens nötig.
+            ClockSkew = TimeSpan.FromSeconds(30),
+        };
+    });
+
+// Secure by default: jeder Endpunkt verlangt einen authentifizierten Nutzer, sofern er
+// nicht explizit [AllowAnonymous] markiert ist. Verhindert den klassischen Fehler "neuer
+// Controller vergisst [Authorize]" - hier müsste man Sicherheit aktiv ABschalten, nicht anschalten.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -36,11 +83,15 @@ app.UseExceptionHandler();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Reine Schema-Dokumentation, kein sensibler Inhalt - AllowAnonymous trotz
+    // "secure by default"-Fallback-Policy, sonst bräuchte man zum Browsen der Doku
+    // bereits ein gültiges Token.
+    app.MapOpenApi().AllowAnonymous();
 }
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

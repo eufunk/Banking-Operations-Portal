@@ -1,0 +1,88 @@
+@page "/login"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Banking.Web.Security
+@inject NavigationManager Navigation
+
+<PageTitle>Anmelden</PageTitle>
+
+<h1>Anmelden</h1>
+
+@* Bewusst KEIN @rendermode InteractiveServer: HttpContext.SignInAsync schreibt einen
+   Set-Cookie-Response-Header, der nur während der eigentlichen HTTP-Antwort möglich ist -
+   nicht mehr, sobald eine interaktive SignalR-Verbindung übernommen hat. *@
+<EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+    <DataAnnotationsValidator />
+
+    @if (_error)
+    {
+        <p class="field-error">Benutzername oder Passwort ist falsch.</p>
+    }
+
+    <div class="form-field">
+        <label for="username">Benutzername</label>
+        <InputText id="username" @bind-Value="Input.Username" />
+    </div>
+    <div class="form-field">
+        <label for="password">Passwort</label>
+        <InputText id="password" @bind-Value="Input.Password" type="password" />
+    </div>
+
+    <button type="submit">Anmelden</button>
+</EditForm>
+
+<p class="demo-hint">
+    Demo-Nutzer (lokale Testkonten, siehe README): <code>employee</code> / <code>manager</code> / <code>admin</code>,
+    Passwort jeweils <code>Demo123!</code>.
+</p>
+
+@code {
+    // Initializer wird beim ersten (GET-)Aufruf gebraucht, bevor überhaupt gepostet wurde;
+    // bei einem echten Form-Post überschreibt das Framework ihn zuverlässig mit den
+    // eingegebenen Werten - der Compiler-Hinweis (BL0008) ist hier ein Fehlalarm.
+#pragma warning disable BL0008
+    [SupplyParameterFromForm]
+    private LoginModel Input { get; set; } = new();
+#pragma warning restore BL0008
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private bool _error;
+
+    private async Task LoginUser()
+    {
+        var user = DemoUserStore.Validate(Input.Username, Input.Password);
+        if (user is null)
+        {
+            _error = true;
+            return;
+        }
+
+        var claims = RoleHierarchy.Expand(user.Role)
+            .Select(role => new Claim(ClaimTypes.Role, role))
+            .Append(new Claim(ClaimTypes.Name, user.DisplayName))
+            .Append(new Claim(ClaimTypes.NameIdentifier, user.Username))
+            .ToList();
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var principal = new ClaimsPrincipal(identity);
+
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+        Navigation.NavigateTo(string.IsNullOrWhiteSpace(ReturnUrl) ? "/dashboard" : ReturnUrl, forceLoad: true);
+    }
+
+    private sealed class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Benutzername ist erforderlich.")]
+        public string Username { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Passwort ist erforderlich.")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

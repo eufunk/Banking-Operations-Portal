@@ -10,4 +10,10 @@ public interface IPaymentsApiClient
     public Task<ApiResult<CreatePaymentResult>> CreateAsync(CreatePaymentRequest request, CancellationToken cancellationToken);
 
     public Task<ApiResult<PaymentDetails>> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>"Payments bearbeiten" - serverseitig auf OperationsManager+ beschränkt (Api-Autorisierung).</summary>
+    public Task<ApiResult<PaymentStatusResult>> ApproveAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>"Payments bearbeiten" - serverseitig auf OperationsManager+ beschränkt (Api-Autorisierung).</summary>
+    public Task<ApiResult<PaymentStatusResult>> RejectAsync(Guid id, CancellationToken cancellationToken);
 }

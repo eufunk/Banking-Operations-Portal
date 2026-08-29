@@ -38,4 +38,10 @@ public sealed class PaymentsApiClient : ApiClientBase, IPaymentsApiClient
 
     public Task<ApiResult<PaymentDetails>> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         => GetAsync<PaymentDetails>($"api/payments/{id}", cancellationToken);
+
+    public Task<ApiResult<PaymentStatusResult>> ApproveAsync(Guid id, CancellationToken cancellationToken)
+        => PostAsync<PaymentStatusResult>($"api/payments/{id}/approve", cancellationToken);
+
+    public Task<ApiResult<PaymentStatusResult>> RejectAsync(Guid id, CancellationToken cancellationToken)
+        => PostAsync<PaymentStatusResult>($"api/payments/{id}/reject", cancellationToken);
 }

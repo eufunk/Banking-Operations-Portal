@@ -1,5 +1,6 @@
 @page "/customers/{Id:guid}"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
 @inject ICustomersApiClient CustomersApi
 @inject IAccountsApiClient AccountsApi
 
