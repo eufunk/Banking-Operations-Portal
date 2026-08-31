@@ -1,0 +1,26 @@
+@if (Jobs.Count == 0)
+{
+    <p>Noch keine Import-Läufe vorhanden.</p>
+}
+else
+{
+    <QuickGrid Items="@Jobs.AsQueryable()" Class="data-table">
+        <PropertyColumn Property="@(j => j.FileName)" Title="Dateiname" Sortable="true" />
+        <PropertyColumn Property="@(j => j.StartedAt)" Title="Startzeit" Sortable="true" Format="g" />
+        <PropertyColumn Property="@(j => j.CompletedAt)" Title="Endzeit" Sortable="true" Format="g" />
+        <PropertyColumn Property="@(j => j.TotalRecords)" Title="Anzahl Records" Sortable="true" Align="Align.End" />
+        <PropertyColumn Property="@(j => j.SuccessfulRecords)" Title="Erfolgreich" Sortable="true" Align="Align.End" />
+        <PropertyColumn Property="@(j => j.FailedRecords)" Title="Fehlerhaft" Sortable="true" Align="Align.End" />
+        <TemplateColumn Title="Status">
+            <StatusBadge Status="@context.Status.ToString()" />
+        </TemplateColumn>
+        <TemplateColumn Title="">
+            <a href="@($"/imports/{context.Id}")">Details</a>
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ImportJobSummary> Jobs { get; set; } = [];
+}

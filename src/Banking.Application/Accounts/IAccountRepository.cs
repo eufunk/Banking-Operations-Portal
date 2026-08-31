@@ -8,6 +8,8 @@ public interface IAccountRepository
 {
     public Task<Account?> GetByIdAsync(AccountId id, CancellationToken cancellationToken);
 
+    public Task<Account?> GetByAccountNumberAsync(AccountNumber accountNumber, CancellationToken cancellationToken);
+
     public Task<PagedResult<Account>> SearchAsync(
         CustomerId? customerId,
         AccountStatus? status,

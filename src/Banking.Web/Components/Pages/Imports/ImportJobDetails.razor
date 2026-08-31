@@ -1,0 +1,69 @@
+@page "/imports/{Id:guid}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
+@inject IImportsApiClient ImportsApi
+
+<PageTitle>Import-Details</PageTitle>
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_result is { IsSuccess: false })
+{
+    <ErrorAlert Title="Import-Job konnte nicht geladen werden" Message="@(_result.ErrorMessage!)" />
+}
+else if (_result is { IsSuccess: true, Value: not null } success)
+{
+    var job = success.Value;
+
+    <h1>@job.FileName</h1>
+    <dl class="detail-list">
+        <dt>Status</dt>
+        <dd><StatusBadge Status="@job.Status.ToString()" /></dd>
+        <dt>Startzeit</dt>
+        <dd>@job.StartedAt.ToString("g")</dd>
+        <dt>Endzeit</dt>
+        <dd>@(job.CompletedAt?.ToString("g") ?? "-")</dd>
+        <dt>Anzahl Records</dt>
+        <dd>@job.TotalRecords</dd>
+        <dt>Erfolgreiche Records</dt>
+        <dd>@job.SuccessfulRecords</dd>
+        <dt>Fehlerhafte Records</dt>
+        <dd>@job.FailedRecords</dd>
+        <dt>Übersprungene Records (bereits zuvor importiert)</dt>
+        <dd>@job.SkippedRecords</dd>
+    </dl>
+
+    <h2>Zeilenergebnisse</h2>
+    @if (job.Records.Count == 0)
+    {
+        <p>Keine Zeilen verarbeitet.</p>
+    }
+    else
+    {
+        <QuickGrid Items="@job.Records.AsQueryable()" Class="data-table">
+            <PropertyColumn Property="@(r => r.RowNumber)" Title="Zeile" Sortable="true" Align="Align.End" />
+            <TemplateColumn Title="Ergebnis">
+                <StatusBadge Status="@context.Outcome.ToString()" />
+            </TemplateColumn>
+            <PropertyColumn Property="@(r => r.ExternalTransactionId)" Title="TransactionId (CSV)" Sortable="true" />
+            <PropertyColumn Property="@(r => r.ErrorMessage)" Title="Fehlermeldung" />
+        </QuickGrid>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private ApiResult<ImportJobDetailsDto>? _result;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _result = await ImportsApi.GetByIdAsync(Id, CancellationToken.None);
+        _loading = false;
+    }
+}

@@ -1,0 +1,58 @@
+@page "/imports"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize(Roles = Roles.BankEmployee)]
+@inject IImportsApiClient ImportsApi
+
+<PageTitle>Imports</PageTitle>
+
+<h1>Imports</h1>
+<p>Überwachung der (simulierten) Azure-Data-Factory-Pipeline für den täglichen Transaktions-Import - siehe docs/architecture/data-import.md.</p>
+
+<ImportUploadPanel Uploaded="OnUploaded" />
+
+@if (_loading)
+{
+    <LoadingIndicator />
+}
+else if (_result is { IsSuccess: false })
+{
+    <ErrorAlert Title="Import-Läufe konnten nicht geladen werden" Message="@(_result.ErrorMessage!)" />
+}
+else if (_result is { IsSuccess: true, Value: not null } success)
+{
+    <ImportJobResultsGrid Jobs="@success.Value.Items" />
+    <PaginationControls
+        Page="@success.Value.Page"
+        TotalPages="@success.Value.TotalPages"
+        TotalCount="@success.Value.TotalCount"
+        PageChanged="OnPageChanged" />
+}
+
+@code {
+    private const int PageSize = 20;
+
+    private int _page = 1;
+    private bool _loading = true;
+    private ApiResult<PagedResult<ImportJobSummary>>? _result;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _result = await ImportsApi.SearchAsync(_page, PageSize, CancellationToken.None);
+        _loading = false;
+    }
+
+    private Task OnPageChanged(int page)
+    {
+        _page = page;
+        return LoadAsync();
+    }
+
+    private Task OnUploaded()
+    {
+        _page = 1;
+        return LoadAsync();
+    }
+}

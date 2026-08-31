@@ -120,6 +120,8 @@ builder.Services.AddHttpClient<ITransactionsApiClient, TransactionsApiClient>(cl
     .AddHttpMessageHandler<AuthTokenHandler>();
 builder.Services.AddHttpClient<IPaymentsApiClient, PaymentsApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
     .AddHttpMessageHandler<AuthTokenHandler>();
+builder.Services.AddHttpClient<IImportsApiClient, ImportsApiClient>(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<AuthTokenHandler>();
 
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 

@@ -1,6 +1,7 @@
 using Banking.Domain.Accounts;
 using Banking.Domain.Auditing;
 using Banking.Domain.Customers;
+using Banking.Domain.Imports;
 using Banking.Domain.Payments;
 using Banking.Domain.Transactions;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ public sealed class BankingDbContext : DbContext
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+    public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

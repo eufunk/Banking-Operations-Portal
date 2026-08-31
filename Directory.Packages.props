@@ -43,6 +43,9 @@
     <!-- services.Configure&lt;T&gt;(IConfigurationSection) - bindet Options an appsettings/Env/User Secrets -->
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+    <!-- CSV-Import (Kapitel 12): robustes Parsing (Quoting/Escaping) statt selbstgeschriebenem
+         String-Splitting - genau die Art Code, die man in der Praxis nicht neu erfindet. -->
+    <PackageVersion Include="CsvHelper" Version="33.1.0" />
 
     <!-- Banking.Web -->
     <!-- Kostenlose, offizielle Microsoft-Komponente statt Telerik UI for Blazor: keine

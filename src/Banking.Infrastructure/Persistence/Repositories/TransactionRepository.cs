@@ -18,6 +18,9 @@ internal sealed class TransactionRepository : ITransactionRepository
     public Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken cancellationToken)
         => _dbContext.Transactions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
+    public async Task AddAsync(Transaction transaction, CancellationToken cancellationToken)
+        => await _dbContext.Transactions.AddAsync(transaction, cancellationToken);
+
     public async Task<PagedResult<Transaction>> SearchAsync(
         AccountId? accountId,
         DateTime? from,

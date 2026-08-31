@@ -2,6 +2,7 @@ using Banking.Application.Accounts;
 using Banking.Application.Common;
 using Banking.Application.Common.Options;
 using Banking.Application.Customers;
+using Banking.Application.Imports;
 using Banking.Application.Payments;
 using Banking.Application.Sap;
 using Banking.Application.Transactions;
@@ -36,6 +37,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IImportJobRepository, ImportJobRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // --- SAP-Integration (Kapitel 11) ---

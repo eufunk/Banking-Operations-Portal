@@ -8,6 +8,10 @@ using Banking.Application.Customers.Dtos;
 using Banking.Application.Customers.GetCustomerDetails;
 using Banking.Application.Customers.GetCustomerSapProfile;
 using Banking.Application.Customers.SearchCustomers;
+using Banking.Application.Imports.Dtos;
+using Banking.Application.Imports.GetImportJobDetails;
+using Banking.Application.Imports.ImportTransactionsCsv;
+using Banking.Application.Imports.SearchImportJobs;
 using Banking.Application.Payments.ApprovePayment;
 using Banking.Application.Payments.CreatePayment;
 using Banking.Application.Payments.Dtos;
@@ -46,11 +50,14 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IQueryHandler<GetPaymentQuery, PaymentDetailsDto>, GetPaymentHandler>();
         services.AddScoped<IQueryHandler<GetPaymentStatusQuery, PaymentStatusDto>, GetPaymentStatusHandler>();
         services.AddScoped<IQueryHandler<SearchPaymentsQuery, PagedResult<PaymentDetailsDto>>, SearchPaymentsHandler>();
+        services.AddScoped<IQueryHandler<SearchImportJobsQuery, PagedResult<ImportJobSummaryDto>>, SearchImportJobsHandler>();
+        services.AddScoped<IQueryHandler<GetImportJobDetailsQuery, ImportJobDetailsDto>, GetImportJobDetailsHandler>();
 
         // Command Handler
         services.AddScoped<ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto>, CreatePaymentHandler>();
         services.AddScoped<ICommandHandler<ApprovePaymentCommand, PaymentStatusDto>, ApprovePaymentHandler>();
         services.AddScoped<ICommandHandler<RejectPaymentCommand, PaymentStatusDto>, RejectPaymentHandler>();
+        services.AddScoped<ICommandHandler<ImportTransactionsCsvCommand, ImportJobSummaryDto>, ImportTransactionsCsvHandler>();
 
         // Validators
         services.AddScoped<IValidator<SearchCustomersQuery>, SearchCustomersValidator>();

@@ -39,6 +39,18 @@ public abstract class ApiClientBase
         return await ToApiResultAsync<TResponse>(response, cancellationToken);
     }
 
+    /// <summary>Für Datei-Uploads (z. B. den CSV-Import, Kapitel 12) - multipart/form-data statt JSON.</summary>
+    protected async Task<ApiResult<TResponse>> PostFileAsync<TResponse>(
+        string requestUri, string fileName, Stream fileContent, CancellationToken cancellationToken)
+    {
+        using var content = new MultipartFormDataContent();
+        using var streamContent = new StreamContent(fileContent);
+        content.Add(streamContent, "file", fileName);
+
+        using var response = await HttpClient.PostAsync(requestUri, content, cancellationToken);
+        return await ToApiResultAsync<TResponse>(response, cancellationToken);
+    }
+
     private async Task<ApiResult<T>> ToApiResultAsync<T>(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode)

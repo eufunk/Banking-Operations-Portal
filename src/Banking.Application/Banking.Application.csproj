@@ -15,6 +15,7 @@
          in Kapitel 11: GetCustomerSapProfileHandler protokolliert einen SAP-Ausfall als
          Warning statt die Anfrage fehlschlagen zu lassen (graceful degradation). -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="CsvHelper" />
   </ItemGroup>
 
 </Project>

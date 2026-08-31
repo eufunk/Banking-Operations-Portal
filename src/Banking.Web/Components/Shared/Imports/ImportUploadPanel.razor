@@ -1,0 +1,69 @@
+@* "einen Import auslösen" ist ein OperationsManager-Recht - simuliert das Blob-Storage-
+   Event, das in einer echten Azure-Data-Factory-Pipeline die Ausführung triggern würde
+   (siehe docs/architecture/data-import.md). *@
+<AuthorizeView Roles="@Roles.OperationsManager">
+    <div class="import-upload-panel">
+        <h2>Neuen Import starten</h2>
+        <p>CSV-Datei mit täglichen Transaktionsdaten hochladen (transactions_YYYY_MM_DD.csv).</p>
+
+        <InputFile OnChange="OnFileSelected" disabled="@_uploading" />
+
+        @if (_uploading)
+        {
+            <LoadingIndicator />
+        }
+        else if (_error is not null)
+        {
+            <ErrorAlert Title="Import fehlgeschlagen" Message="@_error" />
+        }
+    </div>
+</AuthorizeView>
+
+@code {
+    [Inject]
+    private IImportsApiClient ImportsApi { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public EventCallback Uploaded { get; set; }
+
+    private bool _uploading;
+    private string? _error;
+
+    // Etwas Puffer über dem 10-MB-Limit der Api (RequestSizeLimit in ImportsController),
+    // damit der Fehler von der Api kommt (mit klarer Meldung), nicht von Blazors eigenem Limit.
+    private const long MaxAllowedSize = 11 * 1024 * 1024;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _uploading = true;
+        StateHasChanged();
+
+        try
+        {
+            await using var stream = e.File.OpenReadStream(MaxAllowedSize);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var result = await ImportsApi.UploadAsync(e.File.Name, memoryStream, CancellationToken.None);
+
+            if (result.IsSuccess)
+            {
+                await Uploaded.InvokeAsync();
+            }
+            else
+            {
+                _error = result.ErrorMessage;
+            }
+        }
+        catch (IOException ex)
+        {
+            _error = $"Datei zu groß oder nicht lesbar: {ex.Message}";
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+}

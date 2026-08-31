@@ -18,6 +18,9 @@ internal sealed class AccountRepository : IAccountRepository
     public Task<Account?> GetByIdAsync(AccountId id, CancellationToken cancellationToken)
         => _dbContext.Accounts.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
+    public Task<Account?> GetByAccountNumberAsync(AccountNumber accountNumber, CancellationToken cancellationToken)
+        => _dbContext.Accounts.FirstOrDefaultAsync(a => a.AccountNumber == accountNumber, cancellationToken);
+
     public async Task<PagedResult<Account>> SearchAsync(
         CustomerId? customerId,
         AccountStatus? status,

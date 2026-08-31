@@ -55,3 +55,18 @@ public enum PaymentStatus
     Rejected,
     Failed,
 }
+
+public enum ImportJobStatus
+{
+    Started,
+    Processing,
+    Completed,
+    Failed,
+}
+
+public enum ImportRecordOutcome
+{
+    Success,
+    Failed,
+    Skipped,
+}

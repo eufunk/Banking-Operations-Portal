@@ -6,9 +6,10 @@
 
     private string Variant => Status.ToLowerInvariant() switch
     {
-        "active" or "booked" or "executed" or "approved" => "success",
-        "pending" or "draft" or "pendingapproval" or "submitted" or "inactive" => "warning",
+        "active" or "booked" or "executed" or "approved" or "completed" or "success" => "success",
+        "pending" or "draft" or "pendingapproval" or "submitted" or "inactive" or "started" or "processing" => "warning",
         "failed" or "rejected" or "blocked" or "closed" or "reversed" => "danger",
+        "skipped" => "neutral",
         _ => "neutral",
     };
 }

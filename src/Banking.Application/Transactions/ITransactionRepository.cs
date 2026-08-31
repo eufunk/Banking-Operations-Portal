@@ -8,6 +8,8 @@ public interface ITransactionRepository
 {
     public Task<Transaction?> GetByIdAsync(TransactionId id, CancellationToken cancellationToken);
 
+    public Task AddAsync(Transaction transaction, CancellationToken cancellationToken);
+
     /// <summary>accountId == null -> neueste Transaktionen über alle Konten hinweg.</summary>
     public Task<PagedResult<Transaction>> SearchAsync(
         AccountId? accountId,
