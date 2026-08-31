@@ -1,19 +1,45 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using Azure.Identity;
 using Banking.Api.Middleware;
 using Banking.Api.Serialization;
 using Banking.Application;
 using Banking.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Azure Configuration (Kapitel 9) ---
+// Nur aktiv, wenn eine echte Azure-Ressource konfiguriert ist - lokal ohne Azure-
+// Subscription bleibt dieser Block wirkungslos (appConfigEndpoint/keyVaultUri sind dann
+// leer). DefaultAzureCredential nutzt beim Deployment in Azure automatisch die Managed
+// Identity des App Service - kein Secret im Code oder in appsettings nötig. Muss VOR
+// AddInfrastructure() laufen, damit z. B. eine per Key Vault überschriebene Connection
+// String rechtzeitig verfügbar ist. Details: docs/architecture/configuration.md.
+var appConfigEndpoint = builder.Configuration["AzureAppConfiguration:Endpoint"];
+if (!string.IsNullOrWhiteSpace(appConfigEndpoint))
+{
+    var credential = new DefaultAzureCredential();
+
+    builder.Configuration.AddAzureAppConfiguration(options =>
+        options.Connect(new Uri(appConfigEndpoint), credential)
+            .ConfigureKeyVault(kv => kv.SetCredential(credential))
+            .UseFeatureFlags());
+}
+
+var keyVaultUri = builder.Configuration["KeyVault:Uri"];
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+}
+
 // Add services to the container.
 
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddApplication();
+builder.Services.AddApplication(builder.Configuration);
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

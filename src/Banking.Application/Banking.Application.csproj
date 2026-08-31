@@ -8,6 +8,9 @@
     <!-- Reine Klassenbibliotheken, keine ASP.NET-Core-Kopplung -->
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- IOptions<T> - generische .NET-Abstraktion, keine ASP.NET-Core-Kopplung -->
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
   </ItemGroup>
 
 </Project>

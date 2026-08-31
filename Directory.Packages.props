@@ -19,10 +19,20 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
+    <!-- Azure-Konfiguration (Kapitel 9): nur aktiv, wenn AzureAppConfiguration:Endpoint bzw.
+         KeyVault:Uri konfiguriert sind - lokal ohne Azure-Subscription bleibt der Codepfad
+         ungenutzt, ist aber bereits korrekt vorbereitet (DefaultAzureCredential nutzt beim
+         Deployment automatisch Managed Identity, lokal ggf. Azure-CLI-Login). -->
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="8.6.0" />
+    <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.5.2" />
 
     <!-- Banking.Application -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
+    <!-- services.Configure&lt;T&gt;(IConfigurationSection) - bindet Options an appsettings/Env/User Secrets -->
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
 
     <!-- Banking.Web -->
     <!-- Kostenlose, offizielle Microsoft-Komponente statt Telerik UI for Blazor: keine

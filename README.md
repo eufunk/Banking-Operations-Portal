@@ -29,11 +29,33 @@ docs/
   adr/                     Architecture Decision Records
 ```
 
-Abhängigkeitsrichtung und Begründung: siehe [`docs/architecture/overview.md`](docs/architecture/overview.md).
+Abhängigkeitsrichtung und Begründung: siehe [`docs/architecture/overview.md`](docs/architecture/overview.md). Configuration-/Secrets-Strategie (lokal und für Azure vorbereitet): siehe [`docs/architecture/configuration.md`](docs/architecture/configuration.md).
+
+## Lokales Setup (einmalig)
+
+Voraussetzung: [.NET 10 SDK](https://dotnet.microsoft.com/download) + SQL Server LocalDB (Teil der VS-Installation) oder SQL Server in Docker.
+
+**1. Datenbank-Connection-String** ist für LocalDB bereits in `appsettings.Development.json` hinterlegt (Windows Integrated Security, kein Secret nötig). Bei Docker-SQL-Server stattdessen selbst setzen:
+```bash
+dotnet user-secrets set "ConnectionStrings:BankingDatabase" "...;User Id=sa;Password=..." --project src/Banking.Api
+```
+
+**2. JWT-Signing-Key** (Secret, nicht in appsettings/Git) für die Web↔Api-Authentifizierung erzeugen und in **beiden** Projekten identisch hinterlegen:
+```bash
+# Beliebiger zufälliger String, z. B. per PowerShell:
+# [Convert]::ToBase64String((1..64 | ForEach-Object { Get-Random -Max 256 }))
+dotnet user-secrets set "Jwt:SigningKey" "<dein-zufaelliger-key>" --project src/Banking.Api
+dotnet user-secrets set "Jwt:Issuer" "BankingOperationsPortal" --project src/Banking.Api
+dotnet user-secrets set "Jwt:Audience" "BankingOperationsPortal.Api" --project src/Banking.Api
+
+dotnet user-secrets set "Jwt:SigningKey" "<derselbe-key>" --project src/Banking.Web
+dotnet user-secrets set "Jwt:Issuer" "BankingOperationsPortal" --project src/Banking.Web
+dotnet user-secrets set "Jwt:Audience" "BankingOperationsPortal.Api" --project src/Banking.Web
+```
+
+Ohne Schritt 2 startet die Api mit einer `InvalidOperationException` beim Hochfahren (bewusst - lieber beim Start scheitern als mit einem hartkodierten Fallback-Schlüssel laufen).
 
 ## Solution bauen und starten
-
-Voraussetzung: [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```bash
 # Solution wiederherstellen und bauen
@@ -48,3 +70,5 @@ dotnet run --project src/Banking.Api
 # Web-Frontend starten
 dotnet run --project src/Banking.Web
 ```
+
+Demo-Login im Web-Frontend: `employee` / `manager` / `admin`, Passwort jeweils `Demo123!` (nur lokale Testkonten, siehe [`docs/architecture/configuration.md`](docs/architecture/configuration.md) und den Sicherheitshinweis dort).

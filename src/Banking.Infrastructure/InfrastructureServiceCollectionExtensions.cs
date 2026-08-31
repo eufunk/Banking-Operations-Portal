@@ -1,5 +1,6 @@
 using Banking.Application.Accounts;
 using Banking.Application.Common;
+using Banking.Application.Common.Options;
 using Banking.Application.Customers;
 using Banking.Application.Payments;
 using Banking.Application.Transactions;
@@ -19,9 +20,15 @@ public static class InfrastructureServiceCollectionExtensions
             ?? throw new InvalidOperationException(
                 "Connection String 'BankingDatabase' ist nicht konfiguriert (appsettings/User Secrets).");
 
+        // Configuration (kein Secret) - konfigurierbares Command-Timeout statt Magic Number.
+        var timeouts = configuration.GetSection(TimeoutOptions.SectionName).Get<TimeoutOptions>() ?? new TimeoutOptions();
+
         services.AddDbContext<BankingDbContext>(options =>
             options.UseSqlServer(connectionString, sql =>
-                sql.MigrationsAssembly(typeof(BankingDbContext).Assembly.FullName)));
+            {
+                sql.MigrationsAssembly(typeof(BankingDbContext).Assembly.FullName);
+                sql.CommandTimeout((int)timeouts.DatabaseCommandTimeout.TotalSeconds);
+            }));
 
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IAccountRepository, AccountRepository>();

@@ -1,6 +1,8 @@
+using Banking.Application.Common.Options;
 using Banking.Domain.Accounts;
 using Banking.Domain.Payments;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 
 namespace Banking.Application.Payments.CreatePayment;
 
@@ -13,8 +15,10 @@ namespace Banking.Application.Payments.CreatePayment;
 /// </summary>
 public sealed class CreatePaymentValidator : AbstractValidator<CreatePaymentCommand>
 {
-    public CreatePaymentValidator()
+    public CreatePaymentValidator(IOptions<PaymentLimitsOptions> paymentLimits)
     {
+        var maxAmount = paymentLimits.Value.MaxAmountPerPayment;
+
         RuleFor(c => c.SourceAccountId.Value).NotEqual(Guid.Empty)
             .WithMessage("Quellkonto ist erforderlich.");
 
@@ -23,6 +27,10 @@ public sealed class CreatePaymentValidator : AbstractValidator<CreatePaymentComm
 
         RuleFor(c => c.Amount).GreaterThan(0m)
             .WithMessage("Der Betrag muss größer als 0 sein.");
+
+        // Konfigurierbares Limit statt Magic Number im Code - siehe PaymentLimitsOptions.
+        RuleFor(c => c.Amount).LessThanOrEqualTo(maxAmount)
+            .WithMessage($"Der Betrag darf das konfigurierte Limit von {maxAmount:N2} nicht überschreiten.");
 
         RuleFor(c => c.Currency).NotEmpty().Length(3)
             .WithMessage("Währung muss ein 3-stelliger ISO-4217-Code sein.");

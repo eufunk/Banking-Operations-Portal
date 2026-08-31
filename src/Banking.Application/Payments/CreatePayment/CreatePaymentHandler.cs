@@ -2,11 +2,13 @@ using Banking.Application.Accounts;
 using Banking.Application.Common;
 using Banking.Application.Common.Errors;
 using Banking.Application.Common.Messaging;
+using Banking.Application.Common.Options;
 using Banking.Application.Payments.Dtos;
 using Banking.Domain.Accounts;
 using Banking.Domain.Common;
 using Banking.Domain.Payments;
 using FluentValidation;
+using Microsoft.Extensions.Options;
 
 namespace Banking.Application.Payments.CreatePayment;
 
@@ -16,17 +18,20 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
     private readonly IAccountRepository _accountRepository;
     private readonly IPaymentRepository _paymentRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IOptionsMonitor<FeatureFlagsOptions> _featureFlags;
 
     public CreatePaymentHandler(
         IValidator<CreatePaymentCommand> validator,
         IAccountRepository accountRepository,
         IPaymentRepository paymentRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IOptionsMonitor<FeatureFlagsOptions> featureFlags)
     {
         _validator = validator;
         _accountRepository = accountRepository;
         _paymentRepository = paymentRepository;
         _unitOfWork = unitOfWork;
+        _featureFlags = featureFlags;
     }
 
     public async Task<Result<CreatePaymentResultDto>> Handle(CreatePaymentCommand command, CancellationToken cancellationToken)
@@ -89,10 +94,14 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
             return Result<CreatePaymentResultDto>.Failure(Error.Validation("Payment.Invalid", ex.Message));
         }
 
-        // Direkt zur Freigabe einreichen: BankEmployee legt an, OperationsManager
-        // genehmigt/lehnt ab (siehe ApprovePayment/RejectPayment). Ein Draft-Zwischenstand
-        // ohne Freigabe-Workflow wäre für dieses Portal ohne Mehrwert.
-        payment.SubmitForApproval();
+        // Feature Flag statt Code-Änderung: Freigabe-Workflow lässt sich z. B. in einer
+        // Testumgebung temporär abschalten (Zahlungen bleiben dann im Status Draft).
+        // IOptionsMonitor statt IOptions, weil genau das der Fall ist, für den Azure App
+        // Configuration ohne Neustart aktualisierte Werte liefern soll (siehe Kapitel 9).
+        if (_featureFlags.CurrentValue.EnablePaymentApprovalWorkflow)
+        {
+            payment.SubmitForApproval();
+        }
 
         await _paymentRepository.AddAsync(payment, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

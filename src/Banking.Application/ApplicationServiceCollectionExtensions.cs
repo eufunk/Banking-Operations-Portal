@@ -2,6 +2,7 @@ using Banking.Application.Accounts.Dtos;
 using Banking.Application.Accounts.GetAccountDetails;
 using Banking.Application.Accounts.SearchAccounts;
 using Banking.Application.Common.Messaging;
+using Banking.Application.Common.Options;
 using Banking.Application.Common.Pagination;
 using Banking.Application.Customers.Dtos;
 using Banking.Application.Customers.GetCustomerDetails;
@@ -17,14 +18,21 @@ using Banking.Application.Transactions.Dtos;
 using Banking.Application.Transactions.GetTransactionDetails;
 using Banking.Application.Transactions.SearchTransactions;
 using FluentValidation;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Banking.Application;
 
 public static class ApplicationServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
+        // Configuration (kein Secret) - siehe docs/architecture/configuration.md für die
+        // vollständige Konfigurationshierarchie und die Trennung Secrets/Configuration.
+        services.Configure<PaymentLimitsOptions>(configuration.GetSection(PaymentLimitsOptions.SectionName));
+        services.Configure<TimeoutOptions>(configuration.GetSection(TimeoutOptions.SectionName));
+        services.Configure<FeatureFlagsOptions>(configuration.GetSection(FeatureFlagsOptions.SectionName));
+
         // Query Handler
         services.AddScoped<IQueryHandler<SearchCustomersQuery, PagedResult<CustomerSummaryDto>>, SearchCustomersHandler>();
         services.AddScoped<IQueryHandler<GetCustomerDetailsQuery, CustomerDetailsDto>, GetCustomerDetailsHandler>();

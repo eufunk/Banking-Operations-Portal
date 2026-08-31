@@ -1,11 +1,33 @@
+using Azure.Identity;
 using Banking.Web.Components;
 using Banking.Web.Security;
 using Banking.Web.Services;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Azure Configuration (Kapitel 9, siehe Banking.Api/Program.cs für die Begründung) ---
+// Web hat mit Jwt:SigningKey ebenfalls ein Secret - dieselbe Vorbereitung wie in der Api,
+// nur lokal (noch) ungenutzt, da keine Azure-Subscription vorhanden ist.
+var appConfigEndpoint = builder.Configuration["AzureAppConfiguration:Endpoint"];
+if (!string.IsNullOrWhiteSpace(appConfigEndpoint))
+{
+    var credential = new DefaultAzureCredential();
+
+    builder.Configuration.AddAzureAppConfiguration(options =>
+        options.Connect(new Uri(appConfigEndpoint), credential)
+            .ConfigureKeyVault(kv => kv.SetCredential(credential))
+            .UseFeatureFlags());
+}
+
+var keyVaultUri = builder.Configuration["KeyVault:Uri"];
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
