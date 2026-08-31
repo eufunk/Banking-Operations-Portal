@@ -6,6 +6,7 @@ using Banking.Application.Common.Options;
 using Banking.Application.Common.Pagination;
 using Banking.Application.Customers.Dtos;
 using Banking.Application.Customers.GetCustomerDetails;
+using Banking.Application.Customers.GetCustomerSapProfile;
 using Banking.Application.Customers.SearchCustomers;
 using Banking.Application.Payments.ApprovePayment;
 using Banking.Application.Payments.CreatePayment;
@@ -32,10 +33,12 @@ public static class ApplicationServiceCollectionExtensions
         services.Configure<PaymentLimitsOptions>(configuration.GetSection(PaymentLimitsOptions.SectionName));
         services.Configure<TimeoutOptions>(configuration.GetSection(TimeoutOptions.SectionName));
         services.Configure<FeatureFlagsOptions>(configuration.GetSection(FeatureFlagsOptions.SectionName));
+        services.Configure<SapOptions>(configuration.GetSection(SapOptions.SectionName));
 
         // Query Handler
         services.AddScoped<IQueryHandler<SearchCustomersQuery, PagedResult<CustomerSummaryDto>>, SearchCustomersHandler>();
         services.AddScoped<IQueryHandler<GetCustomerDetailsQuery, CustomerDetailsDto>, GetCustomerDetailsHandler>();
+        services.AddScoped<IQueryHandler<GetCustomerSapProfileQuery, CustomerSapProfileDto>, GetCustomerSapProfileHandler>();
         services.AddScoped<IQueryHandler<GetAccountDetailsQuery, AccountDetailsDto>, GetAccountDetailsHandler>();
         services.AddScoped<IQueryHandler<SearchAccountsQuery, PagedResult<AccountDetailsDto>>, SearchAccountsHandler>();
         services.AddScoped<IQueryHandler<SearchTransactionsQuery, PagedResult<TransactionSummaryDto>>, SearchTransactionsHandler>();

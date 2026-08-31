@@ -11,6 +11,10 @@
     <!-- IOptions<T> - generische .NET-Abstraktion, keine ASP.NET-Core-Kopplung -->
     <PackageReference Include="Microsoft.Extensions.Options" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <!-- ILogger<T> - generische .NET-Abstraktion, keine ASP.NET-Core-Kopplung. Erste Nutzung
+         in Kapitel 11: GetCustomerSapProfileHandler protokolliert einen SAP-Ausfall als
+         Warning statt die Anfrage fehlschlagen zu lassen (graceful degradation). -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
 </Project>

@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <!-- Überschreibt die transitive 6.1.6 aus Microsoft.EntityFrameworkCore.SqlServer, siehe Directory.Packages.props -->
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
 
 </Project>

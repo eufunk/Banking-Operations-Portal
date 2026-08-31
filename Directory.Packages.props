@@ -42,6 +42,7 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
     <!-- services.Configure&lt;T&gt;(IConfigurationSection) - bindet Options an appsettings/Env/User Secrets -->
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
 
     <!-- Banking.Web -->
     <!-- Kostenlose, offizielle Microsoft-Komponente statt Telerik UI for Blazor: keine
@@ -59,6 +60,10 @@
          gegen aktuelle LocalDB-Installationen (SQL Server 2025 LocalDB, Fehler beim Laden
          der SqlUserInstance-Ressourcen). Neueste stabile Version behebt das. -->
     <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+    <!-- SAP-Integration (Kapitel 11): Timeout/Retry/Circuit-Breaker für die HttpClient-basierte
+         SAP-Anbindung als Cross-Cutting-Concern statt Handgeschriebenem - offizielles,
+         Microsoft-gepflegtes Resilience-Paket (baut auf Polly v8 auf). -->
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.9.0" />
 
     <!-- Testprojekte -->
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />

@@ -4,6 +4,7 @@ using Banking.Application.Common.Messaging;
 using Banking.Application.Common.Pagination;
 using Banking.Application.Customers.Dtos;
 using Banking.Application.Customers.GetCustomerDetails;
+using Banking.Application.Customers.GetCustomerSapProfile;
 using Banking.Application.Customers.SearchCustomers;
 using Banking.Domain.Customers;
 using Microsoft.AspNetCore.Authorization;
@@ -20,15 +21,18 @@ public sealed class CustomersController : ControllerBase
 {
     private readonly IQueryHandler<SearchCustomersQuery, PagedResult<CustomerSummaryDto>> _searchCustomers;
     private readonly IQueryHandler<GetCustomerDetailsQuery, CustomerDetailsDto> _getCustomerDetails;
+    private readonly IQueryHandler<GetCustomerSapProfileQuery, CustomerSapProfileDto> _getCustomerSapProfile;
     private readonly ILogger<CustomersController> _logger;
 
     public CustomersController(
         IQueryHandler<SearchCustomersQuery, PagedResult<CustomerSummaryDto>> searchCustomers,
         IQueryHandler<GetCustomerDetailsQuery, CustomerDetailsDto> getCustomerDetails,
+        IQueryHandler<GetCustomerSapProfileQuery, CustomerSapProfileDto> getCustomerSapProfile,
         ILogger<CustomersController> logger)
     {
         _searchCustomers = searchCustomers;
         _getCustomerDetails = getCustomerDetails;
+        _getCustomerSapProfile = getCustomerSapProfile;
         _logger = logger;
     }
 
@@ -63,6 +67,25 @@ public sealed class CustomersController : ControllerBase
 
         var result = await _getCustomerDetails.Handle(
             new GetCustomerDetailsQuery(new CustomerId(id)), cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    /// <summary>
+    /// GET /api/customers/{id}/sap-profile - "Customer 360"-Ansicht: lokale Stammdaten +
+    /// SAP-Anreicherung (Adresse, Risikoeinstufung, SAP-Kontostatus). Liefert auch dann 200
+    /// (mit <c>sapAvailable: false</c>), wenn SAP gerade nicht erreichbar ist - siehe
+    /// docs/architecture/sap-integration.md.
+    /// </summary>
+    [HttpGet("{id:guid}/sap-profile")]
+    [ProducesResponseType(typeof(CustomerSapProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CustomerSapProfileDto>> GetSapProfile(Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("SAP-Kundenprofil angefragt: {CustomerId}", id);
+
+        var result = await _getCustomerSapProfile.Handle(
+            new GetCustomerSapProfileQuery(new CustomerId(id)), cancellationToken);
 
         return result.ToActionResult();
     }
