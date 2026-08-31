@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Banking.Application.Accounts;
 using Banking.Application.Common;
 using Banking.Application.Common.Errors;
@@ -26,33 +27,45 @@ public sealed class SearchTransactionsHandler : IQueryHandler<SearchTransactions
 
     public async Task<Result<PagedResult<TransactionSummaryDto>>> Handle(SearchTransactionsQuery query, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(query, cancellationToken);
-        if (!validationResult.IsValid)
+        var stopwatch = Stopwatch.StartNew();
+        try
         {
-            return Result<PagedResult<TransactionSummaryDto>>.Failure(Error.Validation(
-                "Transactions.Search.Invalid",
-                "Die Suchparameter sind ungültig.",
-                validationResult.Errors.Select(e => e.ErrorMessage).ToArray()));
-        }
-
-        if (query.AccountId is not null)
-        {
-            var account = await _accountRepository.GetByIdAsync(query.AccountId.Value, cancellationToken);
-            if (account is null)
+            var validationResult = await _validator.ValidateAsync(query, cancellationToken);
+            if (!validationResult.IsValid)
             {
-                return Result<PagedResult<TransactionSummaryDto>>.Failure(Error.NotFound(
-                    "Account.NotFound", $"Konto {query.AccountId} wurde nicht gefunden."));
+                return Result<PagedResult<TransactionSummaryDto>>.Failure(Error.Validation(
+                    "Transactions.Search.Invalid",
+                    "Die Suchparameter sind ungültig.",
+                    validationResult.Errors.Select(e => e.ErrorMessage).ToArray()));
             }
+
+            if (query.AccountId is not null)
+            {
+                var account = await _accountRepository.GetByIdAsync(query.AccountId.Value, cancellationToken);
+                if (account is null)
+                {
+                    return Result<PagedResult<TransactionSummaryDto>>.Failure(Error.NotFound(
+                        "Account.NotFound", $"Konto {query.AccountId} wurde nicht gefunden."));
+                }
+            }
+
+            var transactions = await _transactionRepository.SearchAsync(
+                query.AccountId, query.From, query.To, query.Status, query.Page, query.PageSize, cancellationToken);
+
+            var items = transactions.Items
+                .Select(t => new TransactionSummaryDto(t.Id, t.Amount.Amount, t.Amount.Currency.Value, t.BookingDate, t.TransactionType, t.Status, t.Description))
+                .ToList();
+
+            return Result<PagedResult<TransactionSummaryDto>>.Success(
+                new PagedResult<TransactionSummaryDto>(items, transactions.TotalCount, transactions.Page, transactions.PageSize));
         }
-
-        var transactions = await _transactionRepository.SearchAsync(
-            query.AccountId, query.From, query.To, query.Status, query.Page, query.PageSize, cancellationToken);
-
-        var items = transactions.Items
-            .Select(t => new TransactionSummaryDto(t.Id, t.Amount.Amount, t.Amount.Currency.Value, t.BookingDate, t.TransactionType, t.Status, t.Description))
-            .ToList();
-
-        return Result<PagedResult<TransactionSummaryDto>>.Success(
-            new PagedResult<TransactionSummaryDto>(items, transactions.TotalCount, transactions.Page, transactions.PageSize));
+        finally
+        {
+            // finally statt nur am Erfolgspfad: die Metrik soll die tatsächliche
+            // Nutzererfahrung widerspiegeln, auch wenn die Suche z. B. wegen ungültiger
+            // Parameter oder eines nicht gefundenen Kontos früh abbricht.
+            stopwatch.Stop();
+            Telemetry.TransactionSearchDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+        }
     }
 }

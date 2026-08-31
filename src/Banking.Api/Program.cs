@@ -1,14 +1,19 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Banking.Api.Middleware;
 using Banking.Api.Serialization;
 using Banking.Application;
+using Banking.Application.Common;
 using Banking.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +40,63 @@ if (!string.IsNullOrWhiteSpace(keyVaultUri))
 {
     builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
 }
+
+// --- Logging: Correlation IDs (Kapitel 10) ---
+// Reines .NET-Bordmittel, kein Serilog nötig: jede Log-Zeile bekommt automatisch
+// TraceId/SpanId/ParentId der aktuell laufenden Activity angehängt. Genau diese Ids
+// verbinden einen Log-Eintrag mit dem zugehörigen Trace in Application Insights - so
+// findet man z. B. zu einer fehlgeschlagenen Zahlung alle zugehörigen Logs.
+builder.Logging.Configure(options =>
+{
+    options.ActivityTrackingOptions = ActivityTrackingOptions.TraceId
+        | ActivityTrackingOptions.SpanId
+        | ActivityTrackingOptions.ParentId;
+});
+
+// --- Observability / OpenTelemetry (Kapitel 10) ---
+// Request Telemetry (ASP.NET Core), Dependency Telemetry (ausgehendes HTTP, SQL) sowie
+// unsere eigenen Traces/Metriken (Banking.Application.Common.Telemetry) laufen immer über
+// die Konsole - lokal sofort sichtbar, ganz ohne Azure-Subscription. Der Azure-Monitor-
+// Exporter kommt nur zusätzlich hinzu, wenn eine echte Application-Insights-Ressource
+// konfiguriert ist - dasselbe Gate-Muster wie bei Key Vault/App Configuration oben.
+var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(Telemetry.ServiceName))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddSource(Telemetry.ServiceName)
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            // Erfasst bewusst nur Metadaten (Zieldatenbank, Dauer, Erfolg/Fehler), keinen
+            // rohen SQL-Text - der könnte Parameterwerte (z. B. IBANs) enthalten. Diese
+            // Instrumentierung erfasst den SQL-Text ohnehin nur nach explizitem Opt-in per
+            // Environment-Variable, hier bewusst nicht gesetzt.
+            .AddSqlClientInstrumentation()
+            .AddConsoleExporter();
+
+        if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+        {
+            tracing.AddAzureMonitorTraceExporter(options => options.ConnectionString = appInsightsConnectionString);
+        }
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddMeter(Telemetry.ServiceName)
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            // Kürzeres Export-Intervall als der 60s-Standard, damit man beim lokalen
+            // Ausprobieren nicht lange auf die ersten Metrikwerte in der Konsole warten muss.
+            .AddConsoleExporter((_, readerOptions) =>
+                readerOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 5000);
+
+        if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+        {
+            metrics.AddAzureMonitorMetricExporter(options => options.ConnectionString = appInsightsConnectionString);
+        }
+    });
 
 // Add services to the container.
 

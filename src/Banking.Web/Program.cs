@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using Banking.Web.Components;
 using Banking.Web.Security;
 using Banking.Web.Services;
@@ -6,6 +8,9 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +33,53 @@ if (!string.IsNullOrWhiteSpace(keyVaultUri))
 {
     builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
 }
+
+// --- Logging & Observability / OpenTelemetry (Kapitel 10) ---
+// Web selbst hat keine eigene Geschäftslogik-Telemetrie (keine eigenen ActivitySource/
+// Meter-Instrumente wie in Banking.Application) - der Zweck hier ist ausschließlich, die
+// Trace-Id über den kompletten Weg Browser-Klick -> Web (BFF) -> Api -> SQL hinweg
+// durchzureichen (W3C "traceparent"-Header, automatisch über die HttpClient-
+// Instrumentierung). Ohne diesen Block würde jeder Api-Aufruf einen komplett neuen,
+// unverbundenen Trace beginnen - man könnte einen Klick im Browser dann nicht mehr bis zur
+// dahinterliegenden SQL-Abfrage zurückverfolgen.
+const string WebServiceName = "Banking.Web";
+
+builder.Logging.Configure(options =>
+{
+    options.ActivityTrackingOptions = ActivityTrackingOptions.TraceId
+        | ActivityTrackingOptions.SpanId
+        | ActivityTrackingOptions.ParentId;
+});
+
+var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService(WebServiceName))
+    .WithTracing(tracing =>
+    {
+        tracing
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddConsoleExporter();
+
+        if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+        {
+            tracing.AddAzureMonitorTraceExporter(options => options.ConnectionString = appInsightsConnectionString);
+        }
+    })
+    .WithMetrics(metrics =>
+    {
+        metrics
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddConsoleExporter((_, readerOptions) =>
+                readerOptions.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 5000);
+
+        if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+        {
+            metrics.AddAzureMonitorMetricExporter(options => options.ConnectionString = appInsightsConnectionString);
+        }
+    });
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

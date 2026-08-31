@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Banking.Application.Accounts;
 using Banking.Application.Common;
 using Banking.Application.Common.Errors;
@@ -36,26 +37,54 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
 
     public async Task<Result<CreatePaymentResultDto>> Handle(CreatePaymentCommand command, CancellationToken cancellationToken)
     {
+        // Eigene Activity ("Span") für den fachlichen Schritt "Payment Application Service"
+        // in der Kette POST /api/payments -> Application Service -> SQL -> (SAP, Kapitel 11)
+        // -> Payment completed. Der HTTP-Request-Span und der SQL-Dependency-Span entstehen
+        // automatisch über die OpenTelemetry-Instrumentierung in Banking.Api/Program.cs -
+        // dieser Span hier schließt die Lücke dazwischen und macht die reine
+        // Geschäftslogik-Zeit sichtbar. Ohne registrierten Listener (z. B. lokal ohne
+        // Konfiguration) ist StartActivity ein günstiges No-Op.
+        using var activity = Telemetry.ActivitySource.StartActivity("PaymentProcessing");
+        var stopwatch = Stopwatch.StartNew();
+
+        // Bewusst keine sensiblen Werte (IBAN, Betrag) als Tags/Logs - nur die Konto-Id,
+        // die ohne zusätzlichen Datenbankzugriff niemandem etwas verrät.
+        activity?.SetTag("payment.source_account_id", command.SourceAccountId.Value);
+
+        Result<CreatePaymentResultDto> Fail(Error error, string reason)
+        {
+            stopwatch.Stop();
+            Telemetry.PaymentFailedCounter.Add(1, new KeyValuePair<string, object?>("reason", reason));
+            Telemetry.PaymentProcessingDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+            activity?.SetStatus(ActivityStatusCode.Error, reason);
+            activity?.SetTag("payment.failure_reason", reason);
+            return Result<CreatePaymentResultDto>.Failure(error);
+        }
+
         var validationResult = await _validator.ValidateAsync(command, cancellationToken);
         if (!validationResult.IsValid)
         {
-            return Result<CreatePaymentResultDto>.Failure(Error.Validation(
-                "Payment.Invalid",
-                "Der Zahlungsauftrag enthält ungültige Daten.",
-                validationResult.Errors.Select(e => e.ErrorMessage).ToArray()));
+            return Fail(
+                Error.Validation(
+                    "Payment.Invalid",
+                    "Der Zahlungsauftrag enthält ungültige Daten.",
+                    validationResult.Errors.Select(e => e.ErrorMessage).ToArray()),
+                "validation");
         }
 
         var sourceAccount = await _accountRepository.GetByIdAsync(command.SourceAccountId, cancellationToken);
         if (sourceAccount is null)
         {
-            return Result<CreatePaymentResultDto>.Failure(Error.NotFound(
-                "Account.NotFound", $"Konto {command.SourceAccountId} wurde nicht gefunden."));
+            return Fail(
+                Error.NotFound("Account.NotFound", $"Konto {command.SourceAccountId} wurde nicht gefunden."),
+                "account_not_found");
         }
 
         if (sourceAccount.Status != AccountStatus.Active)
         {
-            return Result<CreatePaymentResultDto>.Failure(Error.Conflict(
-                "Account.NotActive", $"Konto {sourceAccount.AccountNumber} ist nicht aktiv (Status: {sourceAccount.Status})."));
+            return Fail(
+                Error.Conflict("Account.NotActive", $"Konto {sourceAccount.AccountNumber} ist nicht aktiv (Status: {sourceAccount.Status})."),
+                "account_not_active");
         }
 
         // Fachliche Regel auf Application-Ebene, nicht im Domain-Modell: Payment kennt
@@ -68,14 +97,16 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
         }
         catch (ArgumentException ex)
         {
-            return Result<CreatePaymentResultDto>.Failure(Error.Validation("Payment.InvalidCurrency", ex.Message));
+            return Fail(Error.Validation("Payment.InvalidCurrency", ex.Message), "invalid_currency");
         }
 
         if (!currency.Equals(sourceAccount.Currency))
         {
-            return Result<CreatePaymentResultDto>.Failure(Error.Conflict(
-                "Payment.CurrencyMismatch",
-                $"Zahlungswährung {currency} passt nicht zur Kontowährung {sourceAccount.Currency} von Konto {sourceAccount.AccountNumber}."));
+            return Fail(
+                Error.Conflict(
+                    "Payment.CurrencyMismatch",
+                    $"Zahlungswährung {currency} passt nicht zur Kontowährung {sourceAccount.Currency} von Konto {sourceAccount.AccountNumber}."),
+                "currency_mismatch");
         }
 
         Payment payment;
@@ -91,7 +122,7 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
         {
             // Value-Object-Guards greifen hier nur noch als letzte Verteidigungslinie -
             // der Validator oben hat dieselben Fälle bereits abgefangen.
-            return Result<CreatePaymentResultDto>.Failure(Error.Validation("Payment.Invalid", ex.Message));
+            return Fail(Error.Validation("Payment.Invalid", ex.Message), "invalid_payment");
         }
 
         // Feature Flag statt Code-Änderung: Freigabe-Workflow lässt sich z. B. in einer
@@ -103,8 +134,16 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
             payment.SubmitForApproval();
         }
 
+        // Der eigentliche SQL-Aufruf entsteht hier - die SqlClient-Instrumentierung greift
+        // automatisch, ohne dass dieser Handler etwas davon wissen muss.
         await _paymentRepository.AddAsync(payment, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        stopwatch.Stop();
+        Telemetry.PaymentSuccessCounter.Add(1);
+        Telemetry.PaymentProcessingDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+        activity?.SetTag("payment.id", payment.Id.Value);
+        activity?.SetStatus(ActivityStatusCode.Ok);
 
         return Result<CreatePaymentResultDto>.Success(new CreatePaymentResultDto(payment.Id, payment.Status));
     }
