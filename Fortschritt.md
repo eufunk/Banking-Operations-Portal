@@ -19,13 +19,12 @@ Alle Abweichungen vom ursprünglichen Plan sind zusätzlich an zwei Stellen doku
 | 9 | Azure Key Vault + Configuration | Key Vault/App Configuration im Code vorbereitet (`DefaultAzureCredential`), aber inaktiv ohne Subscription; lokal: appsettings + User Secrets + Env Vars – ADR #17 | Lokale Konfigurationskette live geprüft; Azure-Pfad nur code-review-geprüft (kein Azure-Zugang) |
 | 10 | Application Insights | **Abweichung**: OpenTelemetry SDK statt klassischem Application-Insights-SDK, Konsolen-Exporter immer aktiv, Azure-Monitor-Exporter nur bei konfigurierter Connection String – ADR #18 | Live verifiziert: vollständige Trace-Kette `POST /api/payments → PaymentProcessing → SQL` mit gemeinsamer Trace-Id, alle 4 Custom Metrics, Exception Telemetry bei erzwungenem SQL-Fehler |
 | 11 | SAP RFC Integration | Anti-Corruption Layer (`ISapCustomerService`), `MockSapCustomerService` (lokaler Standard) + `SapRfcCustomerService` (echter HttpClient-Adapter mit Resilience-Handler statt SAP .NET Connector, der nicht installierbar ist) – ADR #19 | Live verifiziert: Mock-Pfad UND Graceful-Degradation-Pfad (SAP absichtlich nicht erreichbar → `sapAvailable: false` statt Fehler) |
-| 12 | Azure Data Factory | Simulierte CSV-Import-Pipeline (`ImportJob`/`ImportRecord`, erstes Aggregat mit Kind-Collection), Validation-/Transformation-Schritte als echter Code, Idempotenz über externe TransactionId, Blazor-Seite `/imports` – ADR #20 | **Nur Build verifiziert** (`dotnet build`, 0 Fehler). Migration (`AddImportJobs`) konnte nicht gegen LocalDB angewendet werden – McAfees Anwendungssteuerungsrichtlinie blockiert die neu gebaute `Banking.Infrastructure.dll` (Umgebungsproblem, kein Code-Problem). **Live-Test steht noch aus.** |
+| 12 | Azure Data Factory | Simulierte CSV-Import-Pipeline (`ImportJob`/`ImportRecord`, erstes Aggregat mit Kind-Collection), Validation-/Transformation-Schritte als echter Code, Idempotenz über externe TransactionId, Blazor-Seite `/imports` – ADR #20 | Live verifiziert: Migration erfolgreich angewendet, Testdatei mit gültigen/ungültigen Zeilen korrekt verarbeitet (2 erfolgreich, 3 fehlerhaft mit nachvollziehbaren Fehlermeldungen), erzeugte Transaktionen im Konto bestätigt, Idempotenz bei erneutem Upload bestätigt (Skipped statt Doppelbuchung), Rollenmodell bestätigt (BankEmployee: 403 bei Upload, 200 bei Ansicht) |
 
 Zusätzlich erstellt, aber außerhalb der 24 Kapitel: eine separat gepflegte [Einsteiger-Dokumentation](docs/Einsteiger-Dokumentation.docx) für technisch weniger erfahrene Leser, inzwischen mit drei Architektur-Diagrammen (Schichtenmodell, Request-/Auth-Fluss, System-Kontext) illustriert.
 
 ## Bekannte offene Punkte aus bereits umgesetzten Kapiteln
 
-- **Kapitel 12 (Azure Data Factory)**: Migration `AddImportJobs` noch nicht gegen die lokale Datenbank angewendet, Feature also noch nie tatsächlich durchlaufen (blockiert durch McAfee, siehe oben). Sobald gelöst: `dotnet ef database update --project src/Banking.Infrastructure --startup-project src/Banking.Api`, danach einen CSV-Import über `/imports` durchspielen.
 - **Kapitel 12 – bewusste Vereinfachung**: Import läuft synchron im Request statt asynchron über eine Queue (kein Hangfire/Quartz eingeführt) – dokumentiert, nicht als Fehler zu werten.
 - **Kein automatisierter Test deckt bisher irgendeine der Kapitel 1–12 ab** (siehe Kapitel 16/17 unten) – die gesamte bisherige Verifikation ist manuelles/Live-Testen während der jeweiligen Session gewesen, keine wiederholbare Testsuite.
 
@@ -48,6 +47,5 @@ Zusätzlich erstellt, aber außerhalb der 24 Kapitel: eine separat gepflegte [Ei
 
 ## Empfohlene nächste Schritte
 
-1. **Kapitel 12 abschließen**: McAfee-Blocker lösen (Ausnahme greift bisher nicht – vermutlich hash- statt pfadbasierte Anwendungssteuerungsrichtlinie), Migration anwenden, CSV-Import einmal live durchspielen.
-2. **Kapitel 16/17 (Tests) vorziehen**, bevor weitere Kapitel den Umfang noch weiter vergrößern – aktuell gibt es keinerlei Regressionsschutz für die bereits gebauten 12 Kapitel.
-3. Danach chronologisch mit Kapitel 13 (Azure SQL Elastic Pool) fortfahren, mit derselben Transparenz wie bisher: reale, lokal lauffähige Bausteine bauen, wo eine echte Azure-Ressource fehlt, und jede Abweichung in ADR + Kapitel-Notiz dokumentieren.
+1. **Kapitel 16/17 (Tests) vorziehen**, bevor weitere Kapitel den Umfang noch weiter vergrößern – aktuell gibt es keinerlei Regressionsschutz für die bereits gebauten 12 Kapitel.
+2. Danach chronologisch mit Kapitel 13 (Azure SQL Elastic Pool) fortfahren, mit derselben Transparenz wie bisher: reale, lokal lauffähige Bausteine bauen, wo eine echte Azure-Ressource fehlt, und jede Abweichung in ADR + Kapitel-Notiz dokumentieren.

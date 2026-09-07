@@ -69,13 +69,22 @@ EXT-2026-08-31-0002,11111111-1111-1111-1111-111111111111,DE89370400440532013000,
 
 Eine echte Azure-Data-Factory-Pipeline läuft asynchron (Trigger → Queue → Worker). Für den Umfang dieses Portfolio-Projekts verarbeitet `ImportTransactionsCsvHandler` die Datei synchron innerhalb des Upload-Requests - ohne Hintergrund-Job/Queue-Infrastruktur (z. B. Hangfire), die für den restlichen Funktionsumfang der Anwendung nicht gebraucht wird. Das Datenmodell (`ImportJob` mit Status-Übergängen) ist bewusst trotzdem so gebaut, dass eine spätere Umstellung auf echte asynchrone Verarbeitung keine Änderung an Domain oder Api-Vertrag erfordern würde - nur `ImportTransactionsCsvHandler` würde dann von einem Hintergrund-Worker statt direkt vom Controller aufgerufen.
 
-## Status: bereit, lokal noch nicht laufend verifiziert
+## Status: lokal vollständig live verifiziert
 
-Code und EF-Core-Migration (`AddImportJobs`) sind vollständig und bauen fehlerfrei (`dotnet build`, 0 Fehler). Die Migration konnte in dieser Sitzung nicht gegen LocalDB angewendet werden, weil McAfees Anwendungssteuerungsrichtlinie die frisch gebaute `Banking.Infrastructure.dll` blockiert hat (unabhängig vom Projekt - ein wiederkehrendes Thema in dieser lokalen Entwicklungsumgebung, siehe frühere Kapitel). Sobald das gelöst ist:
+Migration `AddImportJobs` erfolgreich gegen LocalDB angewendet:
 
 ```bash
 dotnet ef database update --project src/Banking.Infrastructure --startup-project src/Banking.Api
 ```
+
+Anschließend end-to-end gegen die laufende Api getestet (`POST`/`GET /api/imports`):
+
+- Eine Testdatei mit 5 Zeilen (2 gültig, 1 mit falscher `CustomerId`/Konto-Zuordnung, 1 mit unbekanntem Konto, 1 mit ungültigem Betrag) ergab korrekt `successfulRecords: 2`, `failedRecords: 3`, `status: Completed`, mit nachvollziehbaren Fehlermeldungen pro Zeile.
+- Die beiden erfolgreichen Zeilen erzeugten echte, gebuchte `Transaction`-Einträge auf dem Konto - inklusive korrekt aus dem CSV-Vorzeichen abgeleitetem `TransactionType` (negativer Betrag → `Withdrawal`, positiver → `Deposit`).
+- **Idempotenz bestätigt**: derselbe Upload ein zweites Mal ergab `successfulRecords: 0`, `skippedRecords: 2` (die beiden bereits importierten Zeilen), `failedRecords: 3` (dieselben ungültigen Zeilen scheitern erneut, wie erwartet) - keine doppelten Buchungen.
+- **Rollenmodell bestätigt**: `POST /api/imports` mit einem reinen `BankEmployee`-Token liefert `403`; `GET /api/imports` mit demselben Token liefert `200`.
+
+(Hinweis am Rande: Bei der Verifikation zeigte `curl | python3 -m json.tool` die Fehlermeldungen zunächst mit falsch dargestellten Umlauten - das lag an Pythons Standard-Zeichenkodierung beim Lesen von Pipe-Eingaben unter Windows, nicht an der Anwendung. Ein direkter Blick auf die rohen Response-Bytes bestätigte korrektes UTF-8.)
 
 ## Wie ich das im Bewerbungsgespräch erklären würde
 
