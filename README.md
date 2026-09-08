@@ -29,7 +29,7 @@ docs/
   adr/                     Architecture Decision Records
 ```
 
-Abhängigkeitsrichtung und Begründung: siehe [`docs/architecture/overview.md`](docs/architecture/overview.md). Configuration-/Secrets-Strategie (lokal und für Azure vorbereitet): siehe [`docs/architecture/configuration.md`](docs/architecture/configuration.md). Observability (Tracing/Metriken, OpenTelemetry): siehe [`docs/architecture/observability.md`](docs/architecture/observability.md). SAP-Integration (Anti-Corruption Layer, Mock/HttpClient-Adapter): siehe [`docs/architecture/sap-integration.md`](docs/architecture/sap-integration.md). Transaktions-Import (simulierte Azure-Data-Factory-Pipeline): siehe [`docs/architecture/data-import.md`](docs/architecture/data-import.md).
+Abhängigkeitsrichtung und Begründung: siehe [`docs/architecture/overview.md`](docs/architecture/overview.md). Configuration-/Secrets-Strategie (lokal und für Azure vorbereitet): siehe [`docs/architecture/configuration.md`](docs/architecture/configuration.md). Observability (Tracing/Metriken, OpenTelemetry): siehe [`docs/architecture/observability.md`](docs/architecture/observability.md). SAP-Integration (Anti-Corruption Layer, Mock/HttpClient-Adapter): siehe [`docs/architecture/sap-integration.md`](docs/architecture/sap-integration.md). Transaktions-Import (simulierte Azure-Data-Factory-Pipeline): siehe [`docs/architecture/data-import.md`](docs/architecture/data-import.md). Unit-Test-Strategie (was getestet wird, was nicht, und warum): siehe [`docs/architecture/testing.md`](docs/architecture/testing.md).
 
 ## Lokales Setup (einmalig)
 

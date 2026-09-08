@@ -1,6 +1,7 @@
 using Banking.Application.Common.Pagination;
 using Banking.Application.Payments;
 using Banking.Domain.Accounts;
+using Banking.Domain.Common;
 using Banking.Domain.Payments;
 using Microsoft.EntityFrameworkCore;
 
@@ -56,4 +57,20 @@ internal sealed class PaymentRepository : IPaymentRepository
 
     public async Task AddAsync(Payment payment, CancellationToken cancellationToken)
         => await _dbContext.Payments.AddAsync(payment, cancellationToken);
+
+    public Task<bool> ExistsSimilarRecentAsync(
+        AccountId sourceAccountId,
+        AccountNumber targetAccountNumber,
+        Money amount,
+        DateTime since,
+        CancellationToken cancellationToken)
+        => _dbContext.Payments.AsNoTracking().AnyAsync(
+            p => p.SourceAccountId == sourceAccountId
+                && p.TargetAccountNumber == targetAccountNumber
+                && p.Amount.Amount == amount.Amount
+                && p.Amount.Currency == amount.Currency
+                && p.CreatedAt >= since
+                && p.Status != PaymentStatus.Rejected
+                && p.Status != PaymentStatus.Failed,
+            cancellationToken);
 }

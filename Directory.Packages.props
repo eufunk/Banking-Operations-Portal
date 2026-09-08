@@ -73,6 +73,9 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <!-- Mocking für Unit Tests (Kapitel 16) - mockt nur externe Abhängigkeiten
+         (Repositories), nie reine In-Process-Logik wie FluentValidation-Validatoren. -->
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
   </ItemGroup>
 
 </Project>

@@ -4,9 +4,11 @@ using Banking.Application.Common;
 using Banking.Application.Common.Errors;
 using Banking.Application.Common.Messaging;
 using Banking.Application.Common.Options;
+using Banking.Application.Customers;
 using Banking.Application.Payments.Dtos;
 using Banking.Domain.Accounts;
 using Banking.Domain.Common;
+using Banking.Domain.Customers;
 using Banking.Domain.Payments;
 using FluentValidation;
 using Microsoft.Extensions.Options;
@@ -15,8 +17,15 @@ namespace Banking.Application.Payments.CreatePayment;
 
 public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand, CreatePaymentResultDto>
 {
+    // Schutz vor versehentlicher Doppel-Einreichung (z. B. Doppelklick) - bewusst kurz und
+    // fest codiert, keine allgemeine Betrugserkennung. Ein längeres Fenster würde legitime,
+    // tatsächlich wiederholte Zahlungen (z. B. zweimal dieselbe Miete in unterschiedlichen
+    // Monaten mit identischem Betrag) fälschlich blockieren.
+    private static readonly TimeSpan DuplicateCheckWindow = TimeSpan.FromMinutes(1);
+
     private readonly IValidator<CreatePaymentCommand> _validator;
     private readonly IAccountRepository _accountRepository;
+    private readonly ICustomerRepository _customerRepository;
     private readonly IPaymentRepository _paymentRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IOptionsMonitor<FeatureFlagsOptions> _featureFlags;
@@ -24,12 +33,14 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
     public CreatePaymentHandler(
         IValidator<CreatePaymentCommand> validator,
         IAccountRepository accountRepository,
+        ICustomerRepository customerRepository,
         IPaymentRepository paymentRepository,
         IUnitOfWork unitOfWork,
         IOptionsMonitor<FeatureFlagsOptions> featureFlags)
     {
         _validator = validator;
         _accountRepository = accountRepository;
+        _customerRepository = customerRepository;
         _paymentRepository = paymentRepository;
         _unitOfWork = unitOfWork;
         _featureFlags = featureFlags;
@@ -87,6 +98,23 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
                 "account_not_active");
         }
 
+        // Konto kann aktiv sein, während der zugehörige Kunde es nicht mehr ist (z. B.
+        // Kunde wurde nachträglich blockiert) - beide Prüfungen sind unabhängig voneinander nötig.
+        var customer = await _customerRepository.GetByIdAsync(sourceAccount.CustomerId, cancellationToken);
+        if (customer is null)
+        {
+            return Fail(
+                Error.NotFound("Customer.NotFound", $"Kunde {sourceAccount.CustomerId} wurde nicht gefunden."),
+                "customer_not_found");
+        }
+
+        if (customer.Status != CustomerStatus.Active)
+        {
+            return Fail(
+                Error.Conflict("Customer.NotActive", $"Kunde {customer.CustomerNumber} ist nicht aktiv (Status: {customer.Status})."),
+                "customer_not_active");
+        }
+
         // Fachliche Regel auf Application-Ebene, nicht im Domain-Modell: Payment kennt
         // Account gar nicht (getrennte Aggregate), daher kann nur der Handler - der beide
         // lädt - prüfen, ob Zahlungswährung und Kontowährung zusammenpassen.
@@ -109,12 +137,45 @@ public sealed class CreatePaymentHandler : ICommandHandler<CreatePaymentCommand,
                 "currency_mismatch");
         }
 
+        // Der tatsächliche Kontostand-Abzug passiert erst bei der Ausführung (Account.Debit),
+        // nicht beim Anlegen des Auftrags - trotzdem soll ein Sachbearbeiter nicht schon beim
+        // Anlegen einen Auftrag erstellen können, für den offensichtlich keine Deckung besteht.
+        // Kreditkonten dürfen bewusst ins Minus laufen (siehe Account.Debit), daher hier ausgenommen.
+        if (sourceAccount.AccountType != AccountType.Credit && sourceAccount.Balance.Amount < command.Amount)
+        {
+            return Fail(
+                Error.Conflict(
+                    "Payment.InsufficientFunds",
+                    $"Konto {sourceAccount.AccountNumber} hat mit {sourceAccount.Balance} nicht ausreichend Guthaben für {command.Amount:N2} {currency}."),
+                "insufficient_funds");
+        }
+
+        AccountNumber targetAccountNumber;
+        try
+        {
+            targetAccountNumber = new AccountNumber(command.TargetAccountNumber);
+        }
+        catch (ArgumentException ex)
+        {
+            return Fail(Error.Validation("Payment.InvalidTargetAccount", ex.Message), "invalid_target_account");
+        }
+
+        var duplicateSince = DateTime.UtcNow - DuplicateCheckWindow;
+        var isDuplicate = await _paymentRepository.ExistsSimilarRecentAsync(
+            command.SourceAccountId, targetAccountNumber, new Money(command.Amount, currency), duplicateSince, cancellationToken);
+        if (isDuplicate)
+        {
+            return Fail(
+                Error.Conflict("Payment.Duplicate", "Ein identischer Zahlungsauftrag wurde soeben bereits eingereicht."),
+                "duplicate_payment");
+        }
+
         Payment payment;
         try
         {
             payment = Payment.Create(
                 command.SourceAccountId,
-                new AccountNumber(command.TargetAccountNumber),
+                targetAccountNumber,
                 Money.Positive(command.Amount, currency),
                 new PaymentReference(command.Reference));
         }
