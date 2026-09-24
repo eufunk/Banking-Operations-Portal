@@ -9,6 +9,10 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <!-- Zum Ausstellen von Test-JWTs gegen die echte Authentifizierung der Api - dieselbe
+         Bibliothek, die Banking.Web für echte Tokens verwendet. -->
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
 
   <ItemGroup>

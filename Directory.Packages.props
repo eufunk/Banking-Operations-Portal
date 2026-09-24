@@ -76,6 +76,10 @@
     <!-- Mocking für Unit Tests (Kapitel 16) - mockt nur externe Abhängigkeiten
          (Repositories), nie reine In-Process-Logik wie FluentValidation-Validatoren. -->
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <!-- Integration Tests (Kapitel 17): startet die echte Api In-Process (TestServer) statt
+         über das Netzwerk - echte DI, echte Middleware-Pipeline, echte Handler, echte
+         Datenbank (siehe docs/architecture/testing.md für die Testcontainers-Alternative). -->
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
   </ItemGroup>
 
 </Project>

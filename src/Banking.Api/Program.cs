@@ -185,3 +185,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Für Microsoft.AspNetCore.Mvc.Testing (WebApplicationFactory<Program>) in den
+// Integration Tests (Kapitel 17) - der Top-Level-Statements-Einstiegspunkt erzeugt sonst
+// eine nur intern sichtbare Program-Klasse, auf die ein anderes Testprojekt nicht zugreifen könnte.
+public partial class Program;
