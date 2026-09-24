@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.RegularExpressions;
 using Banking.Domain.Accounts;
 using Banking.Domain.Common;
 using Banking.Domain.Customers;
@@ -50,7 +52,7 @@ public sealed class IntegrationTestWebApplicationFactory : WebApplicationFactory
         // derselbe Mechanismus statt ConfigureAppConfiguration.
         Environment.SetEnvironmentVariable(
             "ConnectionStrings__BankingDatabase",
-            $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;TrustServerCertificate=True;");
+            $"Server={ResolveLocalDbServer()};Database={_databaseName};Trusted_Connection=True;TrustServerCertificate=True;");
         Environment.SetEnvironmentVariable("Jwt__SigningKey", JwtSigningKey);
         Environment.SetEnvironmentVariable("Jwt__Issuer", JwtIssuer);
         Environment.SetEnvironmentVariable("Jwt__Audience", JwtAudience);
@@ -87,6 +89,42 @@ public sealed class IntegrationTestWebApplicationFactory : WebApplicationFactory
         }
 
         await base.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Der Alias "(localdb)\MSSQLLocalDB" schlägt auf dieser Maschine wiederkehrend mit
+    /// einem SNI-/SQLUserInstance.dll-Fehler fehl (bekannter LocalDB-Quirk, siehe
+    /// docs/architecture/testing.md) - die tatsächliche, aktuell aktive Named Pipe über
+    /// "sqllocaldb info" funktioniert dagegen zuverlässig. Fällt auf den Alias zurück,
+    /// falls "sqllocaldb" nicht verfügbar ist (z. B. auf einer anderen Maschine/CI).
+    /// </summary>
+    private static string ResolveLocalDbServer()
+    {
+        const string fallback = @"(localdb)\MSSQLLocalDB";
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo("sqllocaldb", "info MSSQLLocalDB")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+            });
+
+            if (process is null)
+            {
+                return fallback;
+            }
+
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(5000);
+
+            var match = Regex.Match(output, @"pipe\\[^\s]+", RegexOptions.IgnoreCase);
+            return match.Success ? $@"np:\\.\{match.Value}" : fallback;
+        }
+        catch
+        {
+            return fallback;
+        }
     }
 
     /// <summary>

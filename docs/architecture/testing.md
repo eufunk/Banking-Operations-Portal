@@ -105,14 +105,20 @@ Die Lösung: `IntegrationTestWebApplicationFactory` setzt die Overrides stattdes
 
 `IntegrationTestJsonOptions.cs` spiegelt deshalb exakt die Optionen der Api (`JsonSerializerDefaults.Web` + `JsonStringEnumConverter` + `StronglyTypedIdJsonConverterFactory`, aus `Banking.Api.Serialization` wiederverwendet statt neu geschrieben) - dasselbe Prinzip wie `Banking.Web/Services/ApiJsonOptions.cs` für den echten Blazor-Client.
 
-### Status: bereit, lokal noch nicht laufend verifiziert
+### Eine dritte Falle: der LocalDB-Alias
 
-Build ist fehlerfrei (`dotnet build`, 0 Fehler). Der tatsächliche Testlauf (`dotnet test`) konnte in dieser Sitzung nicht durchgeführt werden: McAfees Anwendungssteuerungsrichtlinie blockiert die frisch gebaute `Banking.IntegrationTests.dll` - dasselbe wiederkehrende Umgebungsproblem wie bei der Migration in Kapitel 12, dort hat es sich nach einiger Zeit von selbst gelöst. Sobald behoben:
+Beim ersten tatsächlichen Testlauf schlug die Migration mit einem SQL-Netzwerkfehler fehl ("SQLUserInstance.dll kann nicht geladen werden... ist keine zulässige Win32-Anwendung"), obwohl dieselbe Datenbank über die normale Anwendung (`dotnet run`) einwandfrei erreichbar ist. Der Alias `(localdb)\MSSQLLocalDB` versagt auf dieser Maschine wiederkehrend - ein bekannter, rein umgebungsbedingter LocalDB-Quirk (trat während der gesamten Projektlaufzeit auch beim manuellen lokalen Starten der Api gelegentlich auf). Zuverlässig funktioniert stattdessen die tatsächliche, aktuell aktive Named Pipe der Instanz.
+
+`IntegrationTestWebApplicationFactory.ResolveLocalDbServer()` ruft deshalb `sqllocaldb info MSSQLLocalDB` zur Laufzeit auf und extrahiert die aktuelle Pipe-Adresse (`np:\\.\pipe\LOCALDB#<id>\tsql\query`) statt den Alias fest zu verdrahten - mit Rückfallebene auf den Alias, falls `sqllocaldb` nicht verfügbar ist (z. B. auf einer anderen Maschine oder in einer künftigen CI-Pipeline mit "echtem" SQL Server statt LocalDB).
+
+### Status: lokal vollständig live verifiziert
 
 ```bash
 sqllocaldb start MSSQLLocalDB
 dotnet test tests/Banking.IntegrationTests/Banking.IntegrationTests.csproj
 ```
+
+**Alle 10 Tests grün** (`Fehler: 0, erfolgreich: 10, gesamt: 10`, ca. 1 Sekunde) - inklusive echter Migration gegen eine frisch angelegte LocalDB-Datenbank, echtem Auf- und Abbau der Datenbank pro Testlauf, und allen fünf geforderten Dimensionen. Ebenso erneut bestätigt: `Banking.UnitTests` (28/28 grün) - beide Testprojekte liefen zuvor gegen McAfees Anwendungssteuerungsrichtlinie sowie einen LocalDB-Alias-Fehler (siehe unten), beides war ein reines Umgebungsproblem, kein Code-Problem, und ist inzwischen behoben bzw. hat sich von selbst gelöst.
 
 ### Unit Test vs. Integration Test vs. End-to-End Test
 
